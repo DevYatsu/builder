@@ -1,7 +1,6 @@
 use std::fs;
 use std::path::Path;
 use xshell::{cmd, Shell};
-use log::warn;
 
 pub struct BuildOptions {
     pub run: bool,
@@ -36,7 +35,10 @@ impl BuildSystem for RustBuild {
     fn execute(&self, sh: &Shell, options: &BuildOptions) {
         let verb = if options.run { "run" } else { "build" };
         let rel = if options.release { Some("--release") } else { None };
-        cmd!(sh, "cargo {verb} {rel...}").run().unwrap();
+        if let Err(e) = cmd!(sh, "cargo {verb} {rel...}").run() {
+            log::error!("{verb} failed: {e}");
+            std::process::exit(1);
+        }
     }
 }
 
@@ -45,8 +47,16 @@ impl BuildSystem for MakeBuild {
     fn detect(&self) -> bool { Path::new("Makefile").exists() }
     fn name(&self) -> &'static str { "Makefile" }
     fn execute(&self, sh: &Shell, options: &BuildOptions) {
-        let target = if options.run { Some("run") } else { None };
-        cmd!(sh, "make {target...}").run().unwrap();
+        if let Err(e) = cmd!(sh, "make").run() {
+            log::error!("build failed: {e}");
+            std::process::exit(1);
+        }
+
+        if options.run {
+            if cmd!(sh, "make run").run().is_err() {
+                execute_recently_modified_binary(sh);
+            }
+        }
     }
 }
 
@@ -63,13 +73,84 @@ impl BuildSystem for CMakeBuild {
                 args.extend(["-G", "Ninja"]);
             }
             if options.release { args.push("-DCMAKE_BUILD_TYPE=Release"); }
-            cmd!(sh, "cmake {args...}").run().unwrap();
+            if let Err(e) = cmd!(sh, "cmake {args...}").run() {
+                log::error!("configuration failed: {e}");
+                std::process::exit(1);
+            }
         }
 
-        let config = if options.release { Some("Release") } else { None };
-        cmd!(sh, "cmake --build {build_dir} --config {config...}").run().unwrap();
+        let config = if options.release { vec!["--config", "Release"] } else { vec![] };
+        if let Err(e) = cmd!(sh, "cmake --build {build_dir} {config...}").run() {
+            log::error!("build failed: {e}");
+            std::process::exit(1);
+        }
         
-        if options.run { warn!("CMake cannot natively 'run' target. Use -e."); }
+        if options.run {
+            execute_recently_modified_binary(sh);
+        }
+    }
+}
+
+fn execute_recently_modified_binary(sh: &Shell) {
+    let mut most_recent = None;
+    let mut max_time = std::time::UNIX_EPOCH;
+    
+    let mut dirs = vec![std::path::PathBuf::from(".")];
+    while let Some(dir) = dirs.pop() {
+        if let Ok(entries) = std::fs::read_dir(&dir) {
+            for entry in entries.flatten() {
+                let path = entry.path();
+                let name = path.file_name().unwrap_or_default().to_string_lossy();
+                
+                if name.starts_with('.') || name == "node_modules" || name == "deps" || name == "target" {
+                    continue;
+                }
+                
+                if path.is_dir() {
+                    dirs.push(path);
+                } else {
+                    #[cfg(unix)]
+                    {
+                        use std::os::unix::fs::PermissionsExt;
+                        if let Ok(meta) = entry.metadata() {
+                            if meta.is_file() && meta.permissions().mode() & 0o111 != 0 {
+                                if !name.ends_with(".sh") && !name.ends_with(".rs") && !name.ends_with(".txt") {
+                                    if let Ok(modified) = meta.modified() {
+                                        if modified > max_time {
+                                            max_time = modified;
+                                            most_recent = Some(path);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    #[cfg(windows)]
+                    {
+                        if name.ends_with(".exe") {
+                            if let Ok(meta) = entry.metadata() {
+                                if let Ok(modified) = meta.modified() {
+                                    if modified > max_time {
+                                        max_time = modified;
+                                        most_recent = Some(path);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    if let Some(exe) = most_recent {
+        log::info!("executing: {}", exe.display());
+        if let Err(e) = cmd!(sh, "{exe}").run() {
+            log::error!("execution failed: {e}");
+            std::process::exit(1);
+        }
+    } else {
+        log::warn!("no executable found");
     }
 }
 
@@ -79,7 +160,10 @@ impl BuildSystem for NodeBuild {
     fn name(&self) -> &'static str { "Node.js" }
     fn execute(&self, sh: &Shell, options: &BuildOptions) {
         let script = if options.run { "start" } else { "build" };
-        cmd!(sh, "npm run {script}").run().unwrap();
+        if let Err(e) = cmd!(sh, "npm run {script}").run() {
+            log::error!("npm {script} failed: {e}");
+            std::process::exit(1);
+        }
     }
 }
 
@@ -88,10 +172,14 @@ impl BuildSystem for GoBuild {
     fn detect(&self) -> bool { Path::new("go.mod").exists() }
     fn name(&self) -> &'static str { "Go" }
     fn execute(&self, sh: &Shell, options: &BuildOptions) {
-        if options.run {
-            cmd!(sh, "go run .").run().unwrap();
+        let res = if options.run {
+            cmd!(sh, "go run .").run()
         } else {
-            cmd!(sh, "go build").run().unwrap();
+            cmd!(sh, "go build").run()
+        };
+        if let Err(e) = res {
+            log::error!("go command failed: {e}");
+            std::process::exit(1);
         }
     }
 }
@@ -101,9 +189,15 @@ impl BuildSystem for DockerBuild {
     fn detect(&self) -> bool { Path::new("Dockerfile").exists() }
     fn name(&self) -> &'static str { "Docker" }
     fn execute(&self, sh: &Shell, options: &BuildOptions) {
-        cmd!(sh, "docker build . -t app_image").run().unwrap();
+        if let Err(e) = cmd!(sh, "docker build . -t app_image").run() {
+            log::error!("docker build failed: {e}");
+            std::process::exit(1);
+        }
         if options.run {
-            cmd!(sh, "docker run -it --rm app_image").run().unwrap();
+            if let Err(e) = cmd!(sh, "docker run -it --rm app_image").run() {
+                log::error!("docker run failed: {e}");
+                std::process::exit(1);
+            }
         }
     }
 }
@@ -114,7 +208,10 @@ impl BuildSystem for MavenBuild {
     fn name(&self) -> &'static str { "Maven" }
     fn execute(&self, sh: &Shell, options: &BuildOptions) {
         let target = if options.run { "spring-boot:run" } else { "package" };
-        cmd!(sh, "mvn {target}").run().unwrap();
+        if let Err(e) = cmd!(sh, "mvn {target}").run() {
+            log::error!("maven target failed: {e}");
+            std::process::exit(1);
+        }
     }
 }
 
@@ -125,7 +222,10 @@ impl BuildSystem for GradleBuild {
     fn execute(&self, sh: &Shell, options: &BuildOptions) {
         let exe = if Path::new("gradlew").exists() { "./gradlew" } else { "gradle" };
         let target = if options.run { "run" } else { "build" };
-        cmd!(sh, "{exe} {target}").run().unwrap();
+        if let Err(e) = cmd!(sh, "{exe} {target}").run() {
+            log::error!("gradle target failed: {e}");
+            std::process::exit(1);
+        }
     }
 }
 
@@ -136,7 +236,10 @@ impl BuildSystem for ZigBuild {
     fn execute(&self, sh: &Shell, options: &BuildOptions) {
         let run_flag = if options.run { Some("run") } else { None };
         let opt = if options.release { Some("-Doptimize=ReleaseFast") } else { None };
-        cmd!(sh, "zig build {run_flag...} {opt...}").run().unwrap();
+        if let Err(e) = cmd!(sh, "zig build {run_flag...} {opt...}").run() {
+            log::error!("zig build failed: {e}");
+            std::process::exit(1);
+        }
     }
 }
 
@@ -154,7 +257,10 @@ impl BuildSystem for DotnetBuild {
     fn name(&self) -> &'static str { ".NET" }
     fn execute(&self, sh: &Shell, options: &BuildOptions) {
         let verb = if options.run { "run" } else { "build" };
-        let config = if options.release { Some("Release") } else { None };
-        cmd!(sh, "dotnet {verb} -c {config...}").run().unwrap();
+        let config = if options.release { vec!["-c", "Release"] } else { vec![] };
+        if let Err(e) = cmd!(sh, "dotnet {verb} {config...}").run() {
+            log::error!("dotnet {verb} failed: {e}");
+            std::process::exit(1);
+        }
     }
 }
