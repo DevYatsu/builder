@@ -24,3 +24,40 @@ target
 # Added by cargo
 
 /target
+
+# Test Project Artifacts
+tests/src/**/target/
+tests/src/**/build/
+tests/src/**/dist/
+tests/src/**/bin/
+tests/src/**/obj/
+tests/src/**/out/
+tests/src/**/.zig-cache/
+tests/src/**/zig-out/
+tests/src/**/.build/
+tests/src/**/.swiftpm/
+tests/src/**/.dart_tool/
+tests/src/**/.venv/
+tests/src/**/__pycache__/
+tests/src/**/.pytest_cache/
+tests/src/**/node_modules/
+tests/src/**/.gradle/
+tests/src/**/CMakeCache.txt
+tests/src/**/CMakeFiles/
+tests/src/**/cmake_install.cmake
+tests/src/**/*.o
+tests/src/**/*.a
+tests/src/**/*.so
+tests/src/**/*.dylib
+tests/src/**/*.exe
+tests/src/**/*.pdb
+tests/src/**/*.dll
+tests/src/**/*.pyc
+tests/src/**/Cargo.lock
+tests/src/**/package-lock.json
+tests/src/**/yarn.lock
+tests/src/**/pnpm-lock.yaml
+tests/src/**/bun.lockb
+tests/src/**/uv.lock
+tests/src/**/.python-version
+tests/src/**/myapp

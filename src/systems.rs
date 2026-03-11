@@ -80,7 +80,7 @@ impl BuildSystem for MakeBuild {
             cmd!(sh, "make test").run()?;
         }
         if options.run && cmd!(sh, "make run").run().is_err() {
-            execute_recently_modified_binary(sh)?;
+            execute_recently_modified_binary(sh, ".")?;
         }
         Ok(())
     }
@@ -142,17 +142,36 @@ impl BuildSystem for CMakeBuild {
             cmd!(sh, "ctest --test-dir {build_dir}").run()?;
         }
         if options.run {
-            execute_recently_modified_binary(sh)?;
+            execute_recently_modified_binary(sh, build_dir)?;
         }
         Ok(())
     }
 }
 
-fn execute_recently_modified_binary(sh: &Shell) -> Result<()> {
+fn execute_recently_modified_binary(sh: &Shell, search_dir: &str) -> Result<()> {
     let mut most_recent = None;
     let mut max_time = std::time::UNIX_EPOCH;
-    let skip_dirs = [".git", "node_modules", "target", "build", "dist", ".venv"];
-    let mut dirs = vec![PathBuf::from(".")];
+    let skip_dirs = [
+        ".git",
+        "node_modules",
+        "target",
+        "build",
+        "dist",
+        ".venv",
+        "zig-cache",
+        "zig-out",
+        "CMakeFiles",
+        ".swiftpm",
+        ".dart_tool",
+        "__pycache__",
+        "obj",
+        "bin",
+    ];
+    let mut dirs = if search_dir != "." {
+        vec![PathBuf::from(search_dir)]
+    } else {
+        vec![PathBuf::from(".")]
+    };
     while let Some(dir) = dirs.pop() {
         if let Ok(entries) = sh.read_dir(&dir) {
             for path in entries {
@@ -184,12 +203,19 @@ fn execute_recently_modified_binary(sh: &Shell) -> Result<()> {
 }
 
 fn is_executable(path: &Path) -> bool {
-    let name = path.file_name().unwrap_or_default().to_string_lossy();
-    let skip_exts = [
-        ".sh", ".rs", ".txt", ".md", ".toml", ".yaml", ".json", ".py",
-    ];
-    if skip_exts.iter().any(|ext| name.ends_with(ext)) {
-        return false;
+    if let Some(ext) = path.extension() {
+        let ext_str = ext.to_string_lossy().to_lowercase();
+        #[cfg(windows)]
+        {
+            if ext_str != "exe" && ext_str != "bat" && ext_str != "cmd" {
+                return false;
+            }
+        }
+        #[cfg(not(windows))]
+        {
+            let _ = ext_str;
+            return false;
+        }
     }
     #[cfg(unix)]
     {
@@ -200,7 +226,8 @@ fn is_executable(path: &Path) -> bool {
     }
     #[cfg(windows)]
     {
-        return name.ends_with(".exe") || name.ends_with(".bat");
+        let name = path.file_name().unwrap_or_default().to_string_lossy();
+        return name.ends_with(".exe") || name.ends_with(".bat") || name.ends_with(".cmd");
     }
     false
 }
@@ -248,14 +275,15 @@ impl BuildSystem for BunBuild {
         "Bun"
     }
     fn execute(&self, sh: &Shell, options: &BuildOptions) -> Result<()> {
-        let cmd = if options.test {
-            "test"
+        let mut args = vec![];
+        if options.test {
+            args.push("test");
         } else if options.run {
-            "run ."
+            args.extend(["run", "."]);
         } else {
-            "run build"
-        };
-        cmd!(sh, "bun {cmd}").run().map_err(BuildError::from)
+            args.extend(["run", "build"]);
+        }
+        cmd!(sh, "bun {args...}").run().map_err(BuildError::from)
     }
 }
 
@@ -269,16 +297,11 @@ impl BuildSystem for DenoBuild {
         "Deno"
     }
     fn execute(&self, sh: &Shell, options: &BuildOptions) -> Result<()> {
-        let cmd = if options.test {
-            "test"
+        let mut args = vec![];
+        if options.test {
+            args.push("test");
         } else if options.run {
-            "run"
-        } else {
-            "task build"
-        };
-        let mut args = vec![cmd];
-        if cmd == "run" {
-            args.push("-A");
+            args.extend(["run", "-A"]);
             if sh.path_exists("main.ts") {
                 args.push("main.ts");
             } else if sh.path_exists("index.ts") {
@@ -286,6 +309,8 @@ impl BuildSystem for DenoBuild {
             } else {
                 args.push(".");
             }
+        } else {
+            args.extend(["task", "build"]);
         }
         cmd!(sh, "deno {args...}").run().map_err(BuildError::from)
     }
@@ -301,14 +326,15 @@ impl BuildSystem for GoBuild {
         "Go"
     }
     fn execute(&self, sh: &Shell, options: &BuildOptions) -> Result<()> {
-        let verb = if options.test {
-            "test ./..."
+        let mut args = vec![];
+        if options.test {
+            args.extend(["test", "./..."]);
         } else if options.run {
-            "run ."
+            args.extend(["run", "."]);
         } else {
-            "build"
-        };
-        cmd!(sh, "go {verb}").run().map_err(BuildError::from)
+            args.push("build");
+        }
+        cmd!(sh, "go {args...}").run().map_err(BuildError::from)
     }
 }
 
@@ -322,14 +348,20 @@ impl BuildSystem for UvBuild {
         "uv (Python)"
     }
     fn execute(&self, sh: &Shell, options: &BuildOptions) -> Result<()> {
-        let cmd = if options.test {
-            "run pytest"
+        let mut args = vec![];
+        if options.test {
+            args.extend(["run", "pytest"]);
         } else if options.run {
-            "run ."
+            let entry = if sh.path_exists("main.py") {
+                "main.py"
+            } else {
+                "."
+            };
+            args.extend(["run", entry]);
         } else {
-            "sync"
-        };
-        cmd!(sh, "uv {cmd}").run().map_err(BuildError::from)
+            args.push("sync");
+        }
+        cmd!(sh, "uv {args...}").run().map_err(BuildError::from)
     }
 }
 
@@ -456,14 +488,15 @@ impl BuildSystem for MavenBuild {
         "Maven"
     }
     fn execute(&self, sh: &Shell, options: &BuildOptions) -> Result<()> {
-        let target = if options.test {
-            "test"
+        let mut args = vec![];
+        if options.test {
+            args.push("test");
         } else if options.run {
-            "spring-boot:run"
+            args.push("spring-boot:run");
         } else {
-            "package"
-        };
-        cmd!(sh, "mvn {target}").run().map_err(BuildError::from)
+            args.push("package");
+        }
+        cmd!(sh, "mvn {args...}").run().map_err(BuildError::from)
     }
 }
 
@@ -482,14 +515,15 @@ impl BuildSystem for GradleBuild {
         } else {
             "gradle"
         };
-        let target = if options.test {
-            "test"
+        let mut args = vec![];
+        if options.test {
+            args.push("test");
         } else if options.run {
-            "run"
+            args.push("run");
         } else {
-            "build"
-        };
-        cmd!(sh, "{exe} {target}").run().map_err(BuildError::from)
+            args.push("build");
+        }
+        cmd!(sh, "{exe} {args...}").run().map_err(BuildError::from)
     }
 }
 
