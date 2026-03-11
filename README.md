@@ -1,2 +1,2 @@
-# build
+# builder
 A generic build command
