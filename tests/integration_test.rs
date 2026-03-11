@@ -151,8 +151,11 @@ fn test_real_go_project() {
 fn test_real_zig_project() {
     let temp_dir = tempfile::tempdir().unwrap();
     
-    fs::write(temp_dir.path().join("main.zig"), include_str!("src/zig/main.zig")).unwrap();
+    fs::create_dir(temp_dir.path().join("src")).unwrap();
+    fs::write(temp_dir.path().join("src/main.zig"), include_str!("src/zig/src/main.zig")).unwrap();
+    fs::write(temp_dir.path().join("src/root.zig"), include_str!("src/zig/src/root.zig")).unwrap();
     fs::write(temp_dir.path().join("build.zig"), include_str!("src/zig/build.zig")).unwrap();
+    fs::write(temp_dir.path().join("build.zig.zon"), include_str!("src/zig/build.zig.zon")).unwrap();
 
     let output = Command::new(get_bin())
         .current_dir(temp_dir.path())
@@ -241,4 +244,57 @@ fn test_docker_detection() {
 
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(stdout.contains("detected: Docker"));
+}
+
+#[test]
+fn test_real_bun_project() {
+    let temp_dir = tempfile::tempdir().unwrap();
+    fs::write(temp_dir.path().join("bun.lock"), include_str!("src/bun/bun.lock")).unwrap();
+    fs::write(temp_dir.path().join("index.ts"), include_str!("src/bun/index.ts")).unwrap();
+    fs::write(temp_dir.path().join("tsconfig.json"), include_str!("src/bun/tsconfig.json")).unwrap();
+    fs::write(temp_dir.path().join("package.json"), include_str!("src/bun/package.json")).unwrap();
+
+    let output = Command::new(get_bin())
+        .current_dir(temp_dir.path())
+        .output()
+        .expect("failed to execute process");
+
+    if output.status.success() {
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        assert!(stdout.contains("detected: Bun"));
+    }
+}
+
+#[test]
+fn test_real_deno_project() {
+    let temp_dir = tempfile::tempdir().unwrap();
+    fs::write(temp_dir.path().join("deno.json"), include_str!("src/deno/deno.json")).unwrap();
+    fs::write(temp_dir.path().join("main.ts"), include_str!("src/deno/main.ts")).unwrap();
+    fs::write(temp_dir.path().join("main_test.ts"), include_str!("src/deno/main_test.ts")).unwrap();
+
+    let output = Command::new(get_bin())
+        .current_dir(temp_dir.path())
+        .output()
+        .expect("failed to execute process");
+
+    if output.status.success() {
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        assert!(stdout.contains("detected: Deno"));
+    }
+}
+
+#[test]
+fn test_pnpm_detection() {
+    let temp_dir = tempfile::tempdir().unwrap();
+    fs::write(temp_dir.path().join("package.json"), include_str!("src/node/package.json")).unwrap();
+
+    let output = Command::new(get_bin())
+        .current_dir(temp_dir.path())
+        .output()
+        .expect("failed to execute process");
+
+    if output.status.success() {
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        assert!(stdout.contains("detected: Node.js"));
+    }
 }

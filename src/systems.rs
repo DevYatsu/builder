@@ -18,6 +18,8 @@ pub fn get_systems() -> Vec<Box<dyn BuildSystem>> {
         Box::new(MakeBuild),
         Box::new(CMakeBuild),
         Box::new(NodeBuild),
+        Box::new(BunBuild),
+        Box::new(DenoBuild),
         Box::new(GoBuild),
         Box::new(DockerBuild),
         Box::new(MavenBuild),
@@ -215,6 +217,14 @@ impl BuildSystem for NodeBuild {
         "Node.js"
     }
     fn execute(&self, sh: &Shell, options: &BuildOptions) {
+        let pm = if sh.path_exists("pnpm-lock.yaml") {
+            "pnpm"
+        } else if sh.path_exists("yarn.lock") {
+            "yarn"
+        } else {
+            "npm"
+        };
+
         let script = if options.test {
             "test"
         } else if options.run {
@@ -222,8 +232,66 @@ impl BuildSystem for NodeBuild {
         } else {
             "build"
         };
-        if let Err(e) = cmd!(sh, "npm run {script}").run() {
-            log::error!("npm {script} failed: {e}");
+
+        if let Err(e) = cmd!(sh, "{pm} run {script}").run() {
+            log::error!("{pm} {script} failed: {e}");
+            std::process::exit(1);
+        }
+    }
+}
+
+struct BunBuild;
+impl BuildSystem for BunBuild {
+    fn detect(&self, sh: &Shell) -> bool {
+        sh.path_exists("bun.lockb") || sh.path_exists("bunfig.toml")
+    }
+    fn name(&self) -> &'static str {
+        "Bun"
+    }
+    fn execute(&self, sh: &Shell, options: &BuildOptions) {
+        let cmd = if options.test {
+            "test"
+        } else if options.run {
+            "run ."
+        } else {
+            "run build"
+        };
+        if let Err(e) = cmd!(sh, "bun {cmd}").run() {
+            log::error!("bun {cmd} failed: {e}");
+            std::process::exit(1);
+        }
+    }
+}
+
+struct DenoBuild;
+impl BuildSystem for DenoBuild {
+    fn detect(&self, sh: &Shell) -> bool {
+        sh.path_exists("deno.json") || sh.path_exists("deno.jsonc")
+    }
+    fn name(&self) -> &'static str {
+        "Deno"
+    }
+    fn execute(&self, sh: &Shell, options: &BuildOptions) {
+        let cmd = if options.test {
+            "test"
+        } else if options.run {
+            "run"
+        } else {
+            "task build"
+        };
+        
+        let mut args = vec![cmd];
+        if cmd == "run" {
+            args.push("-A");
+            if sh.path_exists("main.ts") {
+                args.push("main.ts");
+            } else if sh.path_exists("main.js") {
+                args.push("main.js");
+            }
+        }
+
+        if let Err(e) = cmd!(sh, "deno {args...}").run() {
+            log::error!("deno {cmd} failed: {e}");
             std::process::exit(1);
         }
     }
