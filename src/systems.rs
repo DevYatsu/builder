@@ -1,5 +1,3 @@
-use std::fs;
-use std::path::Path;
 use xshell::{Shell, cmd};
 
 pub struct BuildOptions {
@@ -9,7 +7,7 @@ pub struct BuildOptions {
 }
 
 pub trait BuildSystem {
-    fn detect(&self) -> bool;
+    fn detect(&self, sh: &Shell) -> bool;
     fn name(&self) -> &'static str;
     fn execute(&self, sh: &Shell, options: &BuildOptions);
 }
@@ -31,8 +29,8 @@ pub fn get_systems() -> Vec<Box<dyn BuildSystem>> {
 
 struct RustBuild;
 impl BuildSystem for RustBuild {
-    fn detect(&self) -> bool {
-        Path::new("Cargo.toml").exists()
+    fn detect(&self, sh: &Shell) -> bool {
+        sh.path_exists("Cargo.toml")
     }
     fn name(&self) -> &'static str {
         "Rust"
@@ -59,8 +57,8 @@ impl BuildSystem for RustBuild {
 
 struct MakeBuild;
 impl BuildSystem for MakeBuild {
-    fn detect(&self) -> bool {
-        Path::new("Makefile").exists()
+    fn detect(&self, sh: &Shell) -> bool {
+        sh.path_exists("Makefile")
     }
     fn name(&self) -> &'static str {
         "Makefile"
@@ -86,20 +84,20 @@ impl BuildSystem for MakeBuild {
 
 struct CMakeBuild;
 impl BuildSystem for CMakeBuild {
-    fn detect(&self) -> bool {
-        Path::new("CMakeLists.txt").exists()
+    fn detect(&self, sh: &Shell) -> bool {
+        sh.path_exists("CMakeLists.txt")
     }
     fn name(&self) -> &'static str {
         "CMake"
     }
     fn execute(&self, sh: &Shell, options: &BuildOptions) {
-        let build_dir = if Path::new("build").exists() {
+        let build_dir = if sh.path_exists("build") {
             "build"
         } else {
             "."
         };
-
-        if build_dir == "build" && !Path::new("build/CMakeCache.txt").exists() {
+        
+        if build_dir == "build" && !sh.path_exists("build/CMakeCache.txt") {
             let mut args = vec!["-B", "build", "-S", "."];
             if cmd!(sh, "ninja --version").read().is_ok() {
                 args.extend(["-G", "Ninja"]);
@@ -142,11 +140,10 @@ fn execute_recently_modified_binary(sh: &Shell) {
 
     let mut dirs = vec![std::path::PathBuf::from(".")];
     while let Some(dir) = dirs.pop() {
-        if let Ok(entries) = std::fs::read_dir(&dir) {
-            for entry in entries.flatten() {
-                let path = entry.path();
+        if let Ok(entries) = sh.read_dir(&dir) {
+            for path in entries {
                 let name = path.file_name().unwrap_or_default().to_string_lossy();
-
+                
                 if name.starts_with('.')
                     || name == "node_modules"
                     || name == "deps"
@@ -155,29 +152,33 @@ fn execute_recently_modified_binary(sh: &Shell) {
                     continue;
                 }
 
-                if path.is_dir() {
+                let full_path = sh.current_dir().join(&path);
+                if full_path.is_dir() {
                     dirs.push(path);
                 } else {
                     #[cfg(unix)]
                     {
                         use std::os::unix::fs::PermissionsExt;
-                        if let Ok(meta) = entry.metadata()
-                            && meta.is_file()
-                            && meta.permissions().mode() & 0o111 != 0
-                            && !name.ends_with(".sh")
-                            && !name.ends_with(".rs")
-                            && !name.ends_with(".txt")
-                            && let Ok(modified) = meta.modified()
-                            && modified > max_time
-                        {
-                            max_time = modified;
-                            most_recent = Some(path);
+                        if let Ok(meta) = std::fs::metadata(&full_path) {
+                            if meta.is_file() 
+                                && meta.permissions().mode() & 0o111 != 0 
+                                && !name.ends_with(".sh")
+                                && !name.ends_with(".rs")
+                                && !name.ends_with(".txt")
+                            {
+                                if let Ok(modified) = meta.modified() {
+                                    if modified > max_time {
+                                        max_time = modified;
+                                        most_recent = Some(path);
+                                    }
+                                }
+                            }
                         }
                     }
                     #[cfg(windows)]
                     {
                         if name.ends_with(".exe") {
-                            if let Ok(meta) = entry.metadata() {
+                            if let Ok(meta) = std::fs::metadata(&full_path) {
                                 if let Ok(modified) = meta.modified() {
                                     if modified > max_time {
                                         max_time = modified;
@@ -205,8 +206,8 @@ fn execute_recently_modified_binary(sh: &Shell) {
 
 struct NodeBuild;
 impl BuildSystem for NodeBuild {
-    fn detect(&self) -> bool {
-        Path::new("package.json").exists()
+    fn detect(&self, sh: &Shell) -> bool {
+        sh.path_exists("package.json")
     }
     fn name(&self) -> &'static str {
         "Node.js"
@@ -228,8 +229,8 @@ impl BuildSystem for NodeBuild {
 
 struct GoBuild;
 impl BuildSystem for GoBuild {
-    fn detect(&self) -> bool {
-        Path::new("go.mod").exists()
+    fn detect(&self, sh: &Shell) -> bool {
+        sh.path_exists("go.mod")
     }
     fn name(&self) -> &'static str {
         "Go"
@@ -251,8 +252,8 @@ impl BuildSystem for GoBuild {
 
 struct DockerBuild;
 impl BuildSystem for DockerBuild {
-    fn detect(&self) -> bool {
-        Path::new("Dockerfile").exists()
+    fn detect(&self, sh: &Shell) -> bool {
+        sh.path_exists("Dockerfile")
     }
     fn name(&self) -> &'static str {
         "Docker"
@@ -273,8 +274,8 @@ impl BuildSystem for DockerBuild {
 
 struct MavenBuild;
 impl BuildSystem for MavenBuild {
-    fn detect(&self) -> bool {
-        Path::new("pom.xml").exists()
+    fn detect(&self, sh: &Shell) -> bool {
+        sh.path_exists("pom.xml")
     }
     fn name(&self) -> &'static str {
         "Maven"
@@ -296,14 +297,14 @@ impl BuildSystem for MavenBuild {
 
 struct GradleBuild;
 impl BuildSystem for GradleBuild {
-    fn detect(&self) -> bool {
-        Path::new("build.gradle").exists() || Path::new("build.gradle.kts").exists()
+    fn detect(&self, sh: &Shell) -> bool {
+        sh.path_exists("build.gradle") || sh.path_exists("build.gradle.kts")
     }
     fn name(&self) -> &'static str {
         "Gradle"
     }
     fn execute(&self, sh: &Shell, options: &BuildOptions) {
-        let exe = if Path::new("gradlew").exists() {
+        let exe = if sh.path_exists("gradlew") {
             "./gradlew"
         } else {
             "gradle"
@@ -324,8 +325,8 @@ impl BuildSystem for GradleBuild {
 
 struct ZigBuild;
 impl BuildSystem for ZigBuild {
-    fn detect(&self) -> bool {
-        Path::new("build.zig").exists()
+    fn detect(&self, sh: &Shell) -> bool {
+        sh.path_exists("build.zig")
     }
     fn name(&self) -> &'static str {
         "Zig"
@@ -352,12 +353,11 @@ impl BuildSystem for ZigBuild {
 
 struct DotnetBuild;
 impl BuildSystem for DotnetBuild {
-    fn detect(&self) -> bool {
-        fs::read_dir(".")
+    fn detect(&self, sh: &Shell) -> bool {
+        sh.read_dir(".")
             .map(|entries| {
-                entries.flatten().any(|e| {
-                    e.path()
-                        .extension()
+                entries.iter().any(|e| {
+                    e.extension()
                         .is_some_and(|ext| ext == "sln" || ext == "csproj" || ext == "fsproj")
                 })
             })

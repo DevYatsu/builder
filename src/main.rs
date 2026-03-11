@@ -56,7 +56,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let detected = get_systems()
         .into_iter()
-        .filter(|s| s.detect())
+        .filter(|s| s.detect(&sh))
         .collect::<Vec<_>>();
 
     let choice = if detected.is_empty() {
