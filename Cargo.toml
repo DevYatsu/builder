@@ -7,3 +7,6 @@ edition = "2024"
 log = "0.4.29"
 pico-args = "0.5.0"
 xshell = "0.2.7"
+
+[dev-dependencies]
+tempfile = "3.27.0"

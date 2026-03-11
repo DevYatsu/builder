@@ -11,9 +11,9 @@ impl log::Log for Logger {
         if self.enabled(record.metadata()) {
             match record.level() {
                 Level::Error => eprintln!("[ERROR] {}", record.args()),
-                Level::Warn  => eprintln!("[WARN]  {}", record.args()),
-                Level::Info  => println!("[INFO]  {}", record.args()),
-                _            => println!("[DEBUG] {}", record.args()),
+                Level::Warn => eprintln!("[WARN]  {}", record.args()),
+                Level::Info => println!("[INFO]  {}", record.args()),
+                _ => println!("[DEBUG] {}", record.args()),
             }
         }
     }
