@@ -2,9 +2,10 @@ use log::info;
 use std::io::{self, Write};
 use xshell::Shell;
 
-mod logger;
 mod error;
+mod logger;
 mod systems;
+
 use error::{BuildError, Result};
 use systems::{BuildOptions, get_systems};
 
@@ -22,9 +23,16 @@ fn print_help() {
     println!("  -h, --help     Show this help message\n");
 }
 
-fn main() -> Result<()> {
+fn main() {
     logger::init();
 
+    if let Err(e) = run() {
+        log::error!("{}", e);
+        std::process::exit(1);
+    }
+}
+
+fn run() -> Result<()> {
     let mut args = pico_args::Arguments::from_env();
     if args.contains(["-h", "--help"]) {
         print_help();
@@ -54,7 +62,7 @@ fn main() -> Result<()> {
     if let Some(d) = target_dir {
         let path = std::path::Path::new(&d);
         if !path.exists() {
-            return Err(BuildError::NotFound(d).into());
+            return Err(BuildError::NotFound(d));
         }
         sh.change_dir(path);
         info!("dir: {}", path.display());
@@ -66,7 +74,7 @@ fn main() -> Result<()> {
         .collect::<Vec<_>>();
 
     if detected.is_empty() {
-        return Err(BuildError::NoSystemFound.into());
+        return Err(BuildError::NoSystemFound);
     }
 
     let choice = if detected.len() == 1 {
@@ -81,10 +89,11 @@ fn main() -> Result<()> {
             io::stdout().flush()?;
             let mut input = String::new();
             io::stdin().read_line(&mut input)?;
-            if let Ok(val) = input.trim().parse::<usize>() {
-                if val >= 1 && val <= detected.len() {
-                    break val - 1;
-                }
+            if let Ok(val) = input.trim().parse::<usize>()
+                && val >= 1
+                && val <= detected.len()
+            {
+                break val - 1;
             }
             println!("Invalid selection, please try again.");
         }

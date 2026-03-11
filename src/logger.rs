@@ -1,5 +1,6 @@
 use log::{Level, LevelFilter, Metadata, Record};
 
+#[derive(Debug, Clone, Copy)]
 struct Logger;
 
 impl log::Log for Logger {

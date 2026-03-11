@@ -34,7 +34,7 @@ fn test_no_build_system() {
 
     assert!(!output.status.success());
     let stderr = String::from_utf8_lossy(&output.stderr);
-    assert!(stderr.contains("no build system found"));
+    assert!(stderr.contains("No supported build system found"));
 }
 
 #[test]
@@ -48,7 +48,7 @@ fn test_rust_detection() {
         .expect("failed to execute process");
 
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("detected: Rust"));
+    assert!(stdout.contains("using: Rust"));
 }
 
 #[test]
@@ -66,7 +66,7 @@ fn test_make_detection() {
         .expect("failed to execute process");
 
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("detected: Makefile"));
+    assert!(stdout.contains("using: Makefile"));
 }
 
 #[test]
@@ -86,7 +86,7 @@ fn test_real_rust_project() {
 
     assert!(output.status.success());
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("detected: Rust"));
+    assert!(stdout.contains("using: Rust"));
     assert!(stdout.contains("building..."));
     assert!(temp_dir.path().join("target").exists());
 }
@@ -113,7 +113,7 @@ fn test_real_make_project() {
 
     assert!(output.status.success());
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("detected: Makefile"));
+    assert!(stdout.contains("using: Makefile"));
     assert!(temp_dir.path().join("myapp").exists());
 }
 
@@ -139,7 +139,7 @@ fn test_real_cmake_project() {
 
     assert!(output.status.success());
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("detected: CMake"));
+    assert!(stdout.contains("using: CMake"));
     assert!(stdout.contains("building..."));
 
     let has_artifact = temp_dir.path().join("myapp").exists()
@@ -171,7 +171,7 @@ fn test_real_go_project() {
 
     if output.status.success() {
         let stdout = String::from_utf8_lossy(&output.stdout);
-        assert!(stdout.contains("detected: Go"));
+        assert!(stdout.contains("using: Go"));
     }
 }
 
@@ -208,7 +208,7 @@ fn test_real_zig_project() {
 
     if output.status.success() {
         let stdout = String::from_utf8_lossy(&output.stdout);
-        assert!(stdout.contains("detected: Zig"));
+        assert!(stdout.contains("using: Zig"));
     }
 }
 
@@ -228,7 +228,7 @@ fn test_real_node_project() {
 
     if output.status.success() {
         let stdout = String::from_utf8_lossy(&output.stdout);
-        assert!(stdout.contains("detected: Node.js"));
+        assert!(stdout.contains("using: Node.js"));
     }
 }
 
@@ -248,7 +248,7 @@ fn test_real_dotnet_project() {
 
     if output.status.success() {
         let stdout = String::from_utf8_lossy(&output.stdout);
-        assert!(stdout.contains("detected: .NET"));
+        assert!(stdout.contains("using: .NET"));
     }
 }
 
@@ -268,7 +268,7 @@ fn test_real_maven_project() {
 
     if output.status.success() {
         let stdout = String::from_utf8_lossy(&output.stdout);
-        assert!(stdout.contains("detected: Maven"));
+        assert!(stdout.contains("using: Maven"));
     }
 }
 
@@ -288,7 +288,7 @@ fn test_real_gradle_project() {
 
     if output.status.success() {
         let stdout = String::from_utf8_lossy(&output.stdout);
-        assert!(stdout.contains("detected: Gradle"));
+        assert!(stdout.contains("using: Gradle"));
     }
 }
 
@@ -307,7 +307,7 @@ fn test_docker_detection() {
         .expect("failed to execute process");
 
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("detected: Docker"));
+    assert!(stdout.contains("using: Docker"));
 }
 
 #[test]
@@ -341,7 +341,7 @@ fn test_real_bun_project() {
 
     if output.status.success() {
         let stdout = String::from_utf8_lossy(&output.stdout);
-        assert!(stdout.contains("detected: Bun"));
+        assert!(stdout.contains("using: Bun"));
     }
 }
 
@@ -371,7 +371,7 @@ fn test_real_deno_project() {
 
     if output.status.success() {
         let stdout = String::from_utf8_lossy(&output.stdout);
-        assert!(stdout.contains("detected: Deno"));
+        assert!(stdout.contains("using: Deno"));
     }
 }
 
@@ -391,6 +391,108 @@ fn test_pnpm_detection() {
 
     if output.status.success() {
         let stdout = String::from_utf8_lossy(&output.stdout);
-        assert!(stdout.contains("detected: Node.js"));
+        assert!(stdout.contains("using: Node.js"));
+    }
+}
+
+#[test]
+fn test_real_swift_project() {
+    let temp_dir = tempfile::tempdir().unwrap();
+    fs::create_dir_all(temp_dir.path().join("Sources")).unwrap();
+    fs::write(
+        temp_dir.path().join("Package.swift"),
+        include_str!("src/swift/Package.swift"),
+    )
+    .unwrap();
+    fs::write(
+        temp_dir.path().join("Sources/main.swift"),
+        include_str!("src/swift/Sources/main.swift"),
+    )
+    .unwrap();
+
+    let output = Command::new(get_bin())
+        .current_dir(temp_dir.path())
+        .output()
+        .expect("failed to execute process");
+
+    if output.status.success() {
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        assert!(stdout.contains("using: Swift"));
+    }
+}
+
+#[test]
+fn test_real_uv_project() {
+    let temp_dir = tempfile::tempdir().unwrap();
+    fs::write(
+        temp_dir.path().join("pyproject.toml"),
+        include_str!("src/uv/pyproject.toml"),
+    )
+    .unwrap();
+    fs::write(
+        temp_dir.path().join("main.py"),
+        include_str!("src/uv/main.py"),
+    )
+    .unwrap();
+
+    let output = Command::new(get_bin())
+        .current_dir(temp_dir.path())
+        .output()
+        .expect("failed to execute process");
+
+    if output.status.success() {
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        assert!(stdout.contains("using: uv (Python)"));
+    }
+}
+
+#[test]
+fn test_real_python_project() {
+    let temp_dir = tempfile::tempdir().unwrap();
+    fs::write(
+        temp_dir.path().join("requirements.txt"),
+        include_str!("src/python/requirements.txt"),
+    )
+    .unwrap();
+    fs::write(
+        temp_dir.path().join("main.py"),
+        include_str!("src/python/main.py"),
+    )
+    .unwrap();
+
+    let output = Command::new(get_bin())
+        .current_dir(temp_dir.path())
+        .output()
+        .expect("failed to execute process");
+
+    if output.status.success() {
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        assert!(stdout.contains("using: Python"));
+    }
+}
+
+#[test]
+fn test_real_flutter_project() {
+    let temp_dir = tempfile::tempdir().unwrap();
+    fs::create_dir_all(temp_dir.path().join("lib")).unwrap();
+    fs::write(
+        temp_dir.path().join("pubspec.yaml"),
+        include_str!("src/flutter/pubspec.yaml"),
+    )
+    .unwrap();
+    fs::write(
+        temp_dir.path().join("lib/main.dart"),
+        include_str!("src/flutter/lib/main.dart"),
+    )
+    .unwrap();
+
+    let output = Command::new(get_bin())
+        .current_dir(temp_dir.path())
+        .output()
+        .expect("failed to execute process");
+
+    if output.status.success() {
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        assert!(stdout.contains("using: Flutter"));
     }
 }
