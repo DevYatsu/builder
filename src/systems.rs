@@ -91,13 +91,14 @@ impl BuildSystem for CMakeBuild {
         "CMake"
     }
     fn execute(&self, sh: &Shell, options: &BuildOptions) {
-        let build_dir = if sh.path_exists("build") {
+        let has_build_cache = sh.path_exists("build/CMakeCache.txt");
+        let has_root_cache = sh.path_exists("CMakeCache.txt");
+
+        let build_dir = if has_build_cache {
             "build"
-        } else {
+        } else if has_root_cache {
             "."
-        };
-        
-        if build_dir == "build" && !sh.path_exists("build/CMakeCache.txt") {
+        } else {
             let mut args = vec!["-B", "build", "-S", "."];
             if cmd!(sh, "ninja --version").read().is_ok() {
                 args.extend(["-G", "Ninja"]);
@@ -109,7 +110,8 @@ impl BuildSystem for CMakeBuild {
                 log::error!("configuration failed: {e}");
                 std::process::exit(1);
             }
-        }
+            "build"
+        };
 
         let config = if options.release {
             vec!["--config", "Release"]
