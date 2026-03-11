@@ -1,23 +1,28 @@
-use log::{error, info};
+use log::info;
 use std::io::{self, Write};
 use xshell::Shell;
 
 mod logger;
+mod error;
 mod systems;
+use error::{BuildError, Result};
 use systems::{BuildOptions, get_systems};
 
 fn print_help() {
+    let cyan = "\x1b[1;36m";
+    let reset = "\x1b[0m";
+    println!("{}builder{} - A universal build utility\n", cyan, reset);
     println!("Usage: builder [OPTIONS] [DIRECTORY]\n");
     println!("Options:");
-    println!("  -x, --run      Native run");
-    println!("  -t, --test     Run tests");
-    println!("  -r, --release  Release build");
-    println!("  -l, --list     List supported build systems");
+    println!("  -x, --run      Build and execute");
+    println!("  -t, --test     Run project tests");
+    println!("  -r, --release  Enable release optimizations");
+    println!("  -l, --list     List all supported systems");
     println!("  -d, --dir <D>  Target directory");
-    println!("  -h, --help     Show this help\n");
+    println!("  -h, --help     Show this help message\n");
 }
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
+fn main() -> Result<()> {
     logger::init();
 
     let mut args = pico_args::Arguments::from_env();
@@ -43,15 +48,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let target_dir: Option<String> = args
         .opt_value_from_str(["-d", "--dir"])?
         .or(args.opt_free_from_str()?);
+
     let sh = Shell::new()?;
 
     if let Some(d) = target_dir {
-        if !sh.path_exists(&d) {
-            error!("dir '{}' not found", d);
-            std::process::exit(1);
+        let path = std::path::Path::new(&d);
+        if !path.exists() {
+            return Err(BuildError::NotFound(d).into());
         }
-        sh.change_dir(&d);
-        info!("dir: {}", d);
+        sh.change_dir(path);
+        info!("dir: {}", path.display());
     }
 
     let detected = get_systems()
@@ -59,39 +65,47 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .filter(|s| s.detect(&sh))
         .collect::<Vec<_>>();
 
-    let choice = if detected.is_empty() {
-        error!("no build system found.");
-        std::process::exit(1);
-    } else if detected.len() == 1 {
+    if detected.is_empty() {
+        return Err(BuildError::NoSystemFound.into());
+    }
+
+    let choice = if detected.len() == 1 {
         0
     } else {
-        println!("\nMultiple systems found:");
+        println!("\nMultiple build systems detected:");
         for (i, sys) in detected.iter().enumerate() {
             println!("  {}. {}", i + 1, sys.name());
         }
-        print!("Choice (1-{}): ", detected.len());
-        io::stdout().flush()?;
-        let mut input = String::new();
-        io::stdin().read_line(&mut input)?;
-        input.trim().parse::<usize>().map(|v| v - 1).unwrap_or(999)
+        loop {
+            print!("\nChoice (1-{}): ", detected.len());
+            io::stdout().flush()?;
+            let mut input = String::new();
+            io::stdin().read_line(&mut input)?;
+            if let Ok(val) = input.trim().parse::<usize>() {
+                if val >= 1 && val <= detected.len() {
+                    break val - 1;
+                }
+            }
+            println!("Invalid selection, please try again.");
+        }
     };
 
-    if let Some(sys) = detected.get(choice) {
-        info!("detected: {}", sys.name());
-        let mode = if options.test {
-            "test"
-        } else if options.run {
-            "runn"
-        } else {
-            "build"
-        };
-        info!("{}ing...", mode);
+    let sys = &detected[choice];
+    info!("using: {}", sys.name());
 
-        sys.execute(&sh, &options);
+    let mode = if options.test {
+        "testing"
+    } else if options.run {
+        "running"
     } else {
-        error!("invalid selection.");
-        std::process::exit(1);
-    }
+        "building"
+    };
+    info!("{}...", mode);
+
+    sys.execute(&sh, &options).map_err(|e| {
+        log::error!("{}: {}", mode, e);
+        e
+    })?;
 
     Ok(())
 }

@@ -54,7 +54,11 @@ fn test_rust_detection() {
 #[test]
 fn test_make_detection() {
     let temp_dir = tempfile::tempdir().unwrap();
-    fs::write(temp_dir.path().join("Makefile"), include_str!("src/make/Makefile")).unwrap();
+    fs::write(
+        temp_dir.path().join("Makefile"),
+        include_str!("src/make/Makefile"),
+    )
+    .unwrap();
 
     let output = Command::new(get_bin())
         .current_dir(temp_dir.path())
@@ -68,7 +72,7 @@ fn test_make_detection() {
 #[test]
 fn test_real_rust_project() {
     let temp_dir = tempfile::tempdir().unwrap();
-    
+
     Command::new("cargo")
         .args(["init", "--bin", "--name", "myapp"])
         .current_dir(temp_dir.path())
@@ -90,9 +94,17 @@ fn test_real_rust_project() {
 #[test]
 fn test_real_make_project() {
     let temp_dir = tempfile::tempdir().unwrap();
-    
-    fs::write(temp_dir.path().join("main.c"), include_str!("src/make/main.c")).unwrap();
-    fs::write(temp_dir.path().join("Makefile"), include_str!("src/make/Makefile")).unwrap();
+
+    fs::write(
+        temp_dir.path().join("main.c"),
+        include_str!("src/make/main.c"),
+    )
+    .unwrap();
+    fs::write(
+        temp_dir.path().join("Makefile"),
+        include_str!("src/make/Makefile"),
+    )
+    .unwrap();
 
     let output = Command::new(get_bin())
         .current_dir(temp_dir.path())
@@ -108,9 +120,17 @@ fn test_real_make_project() {
 #[test]
 fn test_real_cmake_project() {
     let temp_dir = tempfile::tempdir().unwrap();
-    
-    fs::write(temp_dir.path().join("main.c"), include_str!("src/cmake/main.c")).unwrap();
-    fs::write(temp_dir.path().join("CMakeLists.txt"), include_str!("src/cmake/CMakeLists.txt")).unwrap();
+
+    fs::write(
+        temp_dir.path().join("main.c"),
+        include_str!("src/cmake/main.c"),
+    )
+    .unwrap();
+    fs::write(
+        temp_dir.path().join("CMakeLists.txt"),
+        include_str!("src/cmake/CMakeLists.txt"),
+    )
+    .unwrap();
 
     let output = Command::new(get_bin())
         .current_dir(temp_dir.path())
@@ -121,20 +141,28 @@ fn test_real_cmake_project() {
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(stdout.contains("detected: CMake"));
     assert!(stdout.contains("building..."));
-    
-    let has_artifact = temp_dir.path().join("myapp").exists() 
-                    || temp_dir.path().join("build/myapp").exists()
-                    || temp_dir.path().join("myapp.exe").exists()
-                    || temp_dir.path().join("build/myapp.exe").exists();
+
+    let has_artifact = temp_dir.path().join("myapp").exists()
+        || temp_dir.path().join("build/myapp").exists()
+        || temp_dir.path().join("myapp.exe").exists()
+        || temp_dir.path().join("build/myapp.exe").exists();
     assert!(has_artifact);
 }
 
 #[test]
 fn test_real_go_project() {
     let temp_dir = tempfile::tempdir().unwrap();
-    
-    fs::write(temp_dir.path().join("main.go"), include_str!("src/go/main.go")).unwrap();
-    fs::write(temp_dir.path().join("go.mod"), include_str!("src/go/go.mod")).unwrap();
+
+    fs::write(
+        temp_dir.path().join("main.go"),
+        include_str!("src/go/main.go"),
+    )
+    .unwrap();
+    fs::write(
+        temp_dir.path().join("go.mod"),
+        include_str!("src/go/go.mod"),
+    )
+    .unwrap();
 
     let output = Command::new(get_bin())
         .current_dir(temp_dir.path())
@@ -150,12 +178,28 @@ fn test_real_go_project() {
 #[test]
 fn test_real_zig_project() {
     let temp_dir = tempfile::tempdir().unwrap();
-    
+
     fs::create_dir(temp_dir.path().join("src")).unwrap();
-    fs::write(temp_dir.path().join("src/main.zig"), include_str!("src/zig/src/main.zig")).unwrap();
-    fs::write(temp_dir.path().join("src/root.zig"), include_str!("src/zig/src/root.zig")).unwrap();
-    fs::write(temp_dir.path().join("build.zig"), include_str!("src/zig/build.zig")).unwrap();
-    fs::write(temp_dir.path().join("build.zig.zon"), include_str!("src/zig/build.zig.zon")).unwrap();
+    fs::write(
+        temp_dir.path().join("src/main.zig"),
+        include_str!("src/zig/src/main.zig"),
+    )
+    .unwrap();
+    fs::write(
+        temp_dir.path().join("src/root.zig"),
+        include_str!("src/zig/src/root.zig"),
+    )
+    .unwrap();
+    fs::write(
+        temp_dir.path().join("build.zig"),
+        include_str!("src/zig/build.zig"),
+    )
+    .unwrap();
+    fs::write(
+        temp_dir.path().join("build.zig.zon"),
+        include_str!("src/zig/build.zig.zon"),
+    )
+    .unwrap();
 
     let output = Command::new(get_bin())
         .current_dir(temp_dir.path())
@@ -171,7 +215,11 @@ fn test_real_zig_project() {
 #[test]
 fn test_real_node_project() {
     let temp_dir = tempfile::tempdir().unwrap();
-    fs::write(temp_dir.path().join("package.json"), include_str!("src/node/package.json")).unwrap();
+    fs::write(
+        temp_dir.path().join("package.json"),
+        include_str!("src/node/package.json"),
+    )
+    .unwrap();
 
     let output = Command::new(get_bin())
         .current_dir(temp_dir.path())
@@ -187,7 +235,11 @@ fn test_real_node_project() {
 #[test]
 fn test_real_dotnet_project() {
     let temp_dir = tempfile::tempdir().unwrap();
-    fs::write(temp_dir.path().join("myapp.csproj"), include_str!("src/dotnet/myapp.csproj")).unwrap();
+    fs::write(
+        temp_dir.path().join("myapp.csproj"),
+        include_str!("src/dotnet/myapp.csproj"),
+    )
+    .unwrap();
 
     let output = Command::new(get_bin())
         .current_dir(temp_dir.path())
@@ -203,7 +255,11 @@ fn test_real_dotnet_project() {
 #[test]
 fn test_real_maven_project() {
     let temp_dir = tempfile::tempdir().unwrap();
-    fs::write(temp_dir.path().join("pom.xml"), include_str!("src/maven/pom.xml")).unwrap();
+    fs::write(
+        temp_dir.path().join("pom.xml"),
+        include_str!("src/maven/pom.xml"),
+    )
+    .unwrap();
 
     let output = Command::new(get_bin())
         .current_dir(temp_dir.path())
@@ -219,7 +275,11 @@ fn test_real_maven_project() {
 #[test]
 fn test_real_gradle_project() {
     let temp_dir = tempfile::tempdir().unwrap();
-    fs::write(temp_dir.path().join("build.gradle"), include_str!("src/gradle/build.gradle")).unwrap();
+    fs::write(
+        temp_dir.path().join("build.gradle"),
+        include_str!("src/gradle/build.gradle"),
+    )
+    .unwrap();
 
     let output = Command::new(get_bin())
         .current_dir(temp_dir.path())
@@ -235,7 +295,11 @@ fn test_real_gradle_project() {
 #[test]
 fn test_docker_detection() {
     let temp_dir = tempfile::tempdir().unwrap();
-    fs::write(temp_dir.path().join("Dockerfile"), include_str!("src/docker/Dockerfile")).unwrap();
+    fs::write(
+        temp_dir.path().join("Dockerfile"),
+        include_str!("src/docker/Dockerfile"),
+    )
+    .unwrap();
 
     let output = Command::new(get_bin())
         .current_dir(temp_dir.path())
@@ -249,10 +313,26 @@ fn test_docker_detection() {
 #[test]
 fn test_real_bun_project() {
     let temp_dir = tempfile::tempdir().unwrap();
-    fs::write(temp_dir.path().join("bun.lock"), include_str!("src/bun/bun.lock")).unwrap();
-    fs::write(temp_dir.path().join("index.ts"), include_str!("src/bun/index.ts")).unwrap();
-    fs::write(temp_dir.path().join("tsconfig.json"), include_str!("src/bun/tsconfig.json")).unwrap();
-    fs::write(temp_dir.path().join("package.json"), include_str!("src/bun/package.json")).unwrap();
+    fs::write(
+        temp_dir.path().join("bun.lock"),
+        include_str!("src/bun/bun.lock"),
+    )
+    .unwrap();
+    fs::write(
+        temp_dir.path().join("index.ts"),
+        include_str!("src/bun/index.ts"),
+    )
+    .unwrap();
+    fs::write(
+        temp_dir.path().join("tsconfig.json"),
+        include_str!("src/bun/tsconfig.json"),
+    )
+    .unwrap();
+    fs::write(
+        temp_dir.path().join("package.json"),
+        include_str!("src/bun/package.json"),
+    )
+    .unwrap();
 
     let output = Command::new(get_bin())
         .current_dir(temp_dir.path())
@@ -268,9 +348,21 @@ fn test_real_bun_project() {
 #[test]
 fn test_real_deno_project() {
     let temp_dir = tempfile::tempdir().unwrap();
-    fs::write(temp_dir.path().join("deno.json"), include_str!("src/deno/deno.json")).unwrap();
-    fs::write(temp_dir.path().join("main.ts"), include_str!("src/deno/main.ts")).unwrap();
-    fs::write(temp_dir.path().join("main_test.ts"), include_str!("src/deno/main_test.ts")).unwrap();
+    fs::write(
+        temp_dir.path().join("deno.json"),
+        include_str!("src/deno/deno.json"),
+    )
+    .unwrap();
+    fs::write(
+        temp_dir.path().join("main.ts"),
+        include_str!("src/deno/main.ts"),
+    )
+    .unwrap();
+    fs::write(
+        temp_dir.path().join("main_test.ts"),
+        include_str!("src/deno/main_test.ts"),
+    )
+    .unwrap();
 
     let output = Command::new(get_bin())
         .current_dir(temp_dir.path())
@@ -286,7 +378,11 @@ fn test_real_deno_project() {
 #[test]
 fn test_pnpm_detection() {
     let temp_dir = tempfile::tempdir().unwrap();
-    fs::write(temp_dir.path().join("package.json"), include_str!("src/node/package.json")).unwrap();
+    fs::write(
+        temp_dir.path().join("package.json"),
+        include_str!("src/node/package.json"),
+    )
+    .unwrap();
 
     let output = Command::new(get_bin())
         .current_dir(temp_dir.path())

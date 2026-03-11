@@ -2,11 +2,26 @@
 name = "builder"
 version = "0.1.0"
 edition = "2024"
+authors = ["Yanis Amani <107571716+DevYatsu@users.noreply.github.com>"]
+description = "A minimalist, universal build utility for automatic project building"
+license = "MIT"
+repository = "https://github.com/DevYatsu/builder"
+homepage = "https://github.com/DevYatsu/builder"
+readme = "README.md"
+keywords = ["build", "automation", "cli", "utility", "tool"]
+categories = ["development-tools::build-utils", "command-line-utilities"]
 
 [dependencies]
+thiserror = "2.0.18"
 log = "0.4.29"
 pico-args = "0.5.0"
 xshell = "0.2.7"
 
 [dev-dependencies]
 tempfile = "3.27.0"
+
+[profile.release]
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true
