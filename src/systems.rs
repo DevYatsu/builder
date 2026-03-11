@@ -154,18 +154,13 @@ fn execute_recently_modified_binary(sh: &Shell, search_dir: &str) -> Result<()> 
     let skip_dirs = [
         ".git",
         "node_modules",
-        "target",
-        "build",
-        "dist",
         ".venv",
         "zig-cache",
-        "zig-out",
         "CMakeFiles",
         ".swiftpm",
         ".dart_tool",
         "__pycache__",
         "obj",
-        "bin",
     ];
     let mut dirs = if search_dir != "." {
         vec![PathBuf::from(search_dir)]
@@ -203,20 +198,6 @@ fn execute_recently_modified_binary(sh: &Shell, search_dir: &str) -> Result<()> 
 }
 
 fn is_executable(path: &Path) -> bool {
-    if let Some(ext) = path.extension() {
-        let ext_str = ext.to_string_lossy().to_lowercase();
-        #[cfg(windows)]
-        {
-            if ext_str != "exe" && ext_str != "bat" && ext_str != "cmd" {
-                return false;
-            }
-        }
-        #[cfg(not(windows))]
-        {
-            let _ = ext_str;
-            return false;
-        }
-    }
     #[cfg(unix)]
     {
         use std::os::unix::fs::PermissionsExt;
@@ -226,8 +207,10 @@ fn is_executable(path: &Path) -> bool {
     }
     #[cfg(windows)]
     {
-        let name = path.file_name().unwrap_or_default().to_string_lossy();
-        return name.ends_with(".exe") || name.ends_with(".bat") || name.ends_with(".cmd");
+        if let Some(ext) = path.extension() {
+            let ext_str = ext.to_string_lossy().to_lowercase();
+            return ext_str == "exe" || ext_str == "bat" || ext_str == "cmd";
+        }
     }
     false
 }
