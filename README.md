@@ -38,13 +38,6 @@ The fastest way to install the latest version:
 curl -fsSL https://raw.githubusercontent.com/DevYatsu/builder/main/install.sh | bash
 ```
 
-### Via Cargo
-If you have Rust installed:
-
-```bash
-cargo install builder
-```
-
 ### From Source
 ```bash
 git clone https://github.com/DevYatsu/builder.git
