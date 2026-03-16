@@ -1,5 +1,8 @@
 # builder
 
+[![CI](https://github.com/DevYatsu/builder/actions/workflows/ci.yml/badge.svg)](https://github.com/DevYatsu/builder/actions/workflows/ci.yml)
+[![Crates.io](https://img.shields.io/crates/v/builder.svg)](https://crates.io/crates/builder)
+
 A minimalist, universal build utility written in Rust.
 
 builder automatically detects the build system in your current directory and provides a unified interface for building, running, and testing projects across multiple languages and frameworks.
@@ -28,9 +31,24 @@ builder automatically detects the build system in your current directory and pro
 
 ## Installation
 
-Ensure you have Rust and Cargo installed, then run:
+### Via Script (macOS and Linux)
+The fastest way to install the latest version:
 
 ```bash
+curl -fsSL https://raw.githubusercontent.com/DevYatsu/builder/main/install.sh | bash
+```
+
+### Via Cargo
+If you have Rust installed:
+
+```bash
+cargo install builder
+```
+
+### From Source
+```bash
+git clone https://github.com/DevYatsu/builder.git
+cd builder
 cargo install --path .
 ```
 

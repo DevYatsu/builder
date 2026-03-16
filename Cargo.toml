@@ -10,6 +10,7 @@ homepage = "https://github.com/DevYatsu/builder"
 readme = "README.md"
 keywords = ["build", "automation", "cli", "utility", "tool"]
 categories = ["development-tools::build-utils", "command-line-utilities"]
+include = ["src/**/*", "LICENSE", "README.md", "Cargo.toml"]
 
 [dependencies]
 thiserror = "2.0.18"

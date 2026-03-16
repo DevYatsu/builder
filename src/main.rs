@@ -5,6 +5,7 @@ use xshell::Shell;
 mod error;
 mod logger;
 mod systems;
+mod utils;
 
 use error::{BuildError, Result};
 use systems::{BuildOptions, get_systems};
