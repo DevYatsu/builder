@@ -1,23 +1,23 @@
 use crate::error::Result;
 use xshell::Shell;
 
-mod rust;
-mod make;
-mod just;
-mod cmake;
-mod node;
 mod bun;
+mod cmake;
 mod deno;
-mod go;
-mod uv;
-mod python;
-mod swift;
-mod flutter;
 mod docker;
-mod maven;
-mod gradle;
-mod zig;
 mod dotnet;
+mod flutter;
+mod go;
+mod gradle;
+mod just;
+mod make;
+mod maven;
+mod node;
+mod python;
+mod rust;
+mod swift;
+mod uv;
+mod zig;
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub struct BuildOptions {
