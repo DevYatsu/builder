@@ -1,0 +1,92 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build-binaries:
+    name: Build for ${{ matrix.job.target }}
+    runs-on: ${{ matrix.job.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        job:
+          - { target: x86_64-unknown-linux-musl, os: ubuntu-latest, use-cross: true }
+          - { target: x86_64-apple-darwin, os: macos-latest }
+          - { target: aarch64-apple-darwin, os: macos-latest }
+          - { target: x86_64-pc-windows-msvc, os: windows-latest }
+
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.job.target }}
+
+      - name: Install Cross
+        if: matrix.job.use-cross
+        run: cargo install cross --git https://github.com/cross-rs/cross.git
+
+      - name: Build
+        run: |
+          if [ "${{ matrix.job.use-cross }}" == "true" ]; then
+            cross build --release --target ${{ matrix.job.target }}
+          else
+            cargo build --release --target ${{ matrix.job.target }}
+          fi
+        shell: bash
+
+      - name: Package
+        id: package
+        run: |
+          PROJECT_NAME="builder"
+          TARGET="${{ matrix.job.target }}"
+          
+          if [[ "$TARGET" == *"windows"* ]]; then
+            EXE=".exe"
+          fi
+          
+          PKG_NAME="${PROJECT_NAME}-${TARGET}"
+          mkdir -p "dist"
+          cp "target/${TARGET}/release/${PROJECT_NAME}${EXE}" "dist/${PROJECT_NAME}${EXE}"
+          
+          cd dist
+          if [[ "$TARGET" == *"windows"* ]]; then
+            zip "../${PKG_NAME}.zip" *
+            echo "asset=${PKG_NAME}.zip" >> $GITHUB_OUTPUT
+          else
+            tar -czf "../${PKG_NAME}.tar.gz" *
+            echo "asset=${PKG_NAME}.tar.gz" >> $GITHUB_OUTPUT
+          fi
+        shell: bash
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.job.target }}
+          path: ${{ steps.package.outputs.asset }}
+
+  publish-github:
+    name: Create GitHub Release
+    needs: build-binaries
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: artifacts/**/*
+          draft: false
+          prerelease: false
+          generate_release_notes: true
