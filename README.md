@@ -35,7 +35,7 @@ builder automatically detects the build system in your current directory and pro
 The fastest way to install the latest version:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/DevYatsu/builder/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/DevYatsu/builder/master/install.sh | bash
 ```
 
 ### From Source
