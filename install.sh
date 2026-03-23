@@ -8,7 +8,19 @@ set -e
 # Configuration
 REPO="DevYatsu/builder"
 BINARY_NAME="builder"
-INSTALL_DIR="/usr/local/bin"
+
+# Default install directory
+if [[ -z "$INSTALL_DIR" ]]; then
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        INSTALL_DIR="/usr/local/bin"
+    else
+        INSTALL_DIR="/usr/local/bin"
+        # Check if ~/.local/bin exists and is in PATH
+        if [[ ! -w "$INSTALL_DIR" ]] && [[ -d "$HOME/.local/bin" ]] && [[ ":$PATH:" == *":$HOME/.local/bin:"* ]]; then
+            INSTALL_DIR="$HOME/.local/bin"
+        fi
+    fi
+fi
 
 # Colors
 RED='\033[0;31m'
@@ -26,14 +38,21 @@ ARCH="$(uname -m)"
 
 case "$OS" in
     linux)
-        PLATFORM="x86_64-unknown-linux-musl"
+        if [[ "$ARCH" == "aarch64" ]] || [[ "$ARCH" == "arm64" ]]; then
+            PLATFORM="aarch64-unknown-linux-musl"
+        else
+            PLATFORM="x86_64-unknown-linux-musl"
+        fi
         ;;
     darwin)
-        if [[ "$ARCH" == "arm64" ]]; then
+        if [[ "$ARCH" == "arm64" || "$ARCH" == "aarch64" ]]; then
             PLATFORM="aarch64-apple-darwin"
         else
             PLATFORM="x86_64-apple-darwin"
         fi
+        ;;
+    freebsd)
+        PLATFORM="x86_64-unknown-freebsd"
         ;;
     *)
         error "Unsupported OS: $OS. Please install via Cargo: cargo install builder"

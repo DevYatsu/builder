@@ -38,11 +38,30 @@ The fastest way to install the latest version:
 curl -fsSL https://raw.githubusercontent.com/DevYatsu/builder/master/install.sh | bash
 ```
 
+### Via Script (Windows)
+Open a PowerShell terminal and run:
+
+```powershell
+powershell -c "iwr -useb https://raw.githubusercontent.com/DevYatsu/builder/master/install.ps1 | iex"
+```
+
 ### From Source
 ```bash
 git clone https://github.com/DevYatsu/builder.git
 cd builder
 cargo install --path .
+```
+
+## Uninstallation
+
+### macOS and Linux
+```bash
+curl -fsSL https://raw.githubusercontent.com/DevYatsu/builder/master/uninstall.sh | bash
+```
+
+### Windows
+```powershell
+powershell -c "iwr -useb https://raw.githubusercontent.com/DevYatsu/builder/master/uninstall.ps1 | iex"
 ```
 
 ## Usage
