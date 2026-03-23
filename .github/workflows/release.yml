@@ -63,7 +63,7 @@ jobs:
           
           cd dist
           if [[ "$TARGET" == *"windows"* ]]; then
-            7z a "../${PKG_NAME}.zip" *
+            tar -a -c -f "../${PKG_NAME}.zip" *
             echo "asset=${PKG_NAME}.zip" >> $GITHUB_OUTPUT
           else
             tar -czf "../${PKG_NAME}.tar.gz" *
