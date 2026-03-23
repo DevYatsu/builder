@@ -3,7 +3,7 @@ name: Release
 on:
   push:
     tags:
-      - 'v*'
+      - "v*"
 
 permissions:
   contents: write
@@ -16,8 +16,16 @@ jobs:
       fail-fast: false
       matrix:
         job:
-          - { target: x86_64-unknown-linux-musl, os: ubuntu-latest, use-cross: true }
-          - { target: aarch64-unknown-linux-musl, os: ubuntu-latest, use-cross: true }
+          - {
+              target: x86_64-unknown-linux-musl,
+              os: ubuntu-latest,
+              use-cross: true,
+            }
+          - {
+              target: aarch64-unknown-linux-musl,
+              os: ubuntu-latest,
+              use-cross: true,
+            }
           - { target: x86_64-apple-darwin, os: macos-latest }
           - { target: aarch64-apple-darwin, os: macos-latest }
           - { target: x86_64-pc-windows-msvc, os: windows-latest }
@@ -25,7 +33,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
         with:
@@ -52,20 +60,21 @@ jobs:
           PROJECT_NAME="builder"
           TARGET="${{ matrix.job.target }}"
           EXE=""
-          
+
           if [[ "$TARGET" == *"windows"* ]]; then
             EXE=".exe"
           fi
-          
+
           PKG_NAME="${PROJECT_NAME}-${TARGET}"
           mkdir -p "dist"
           cp "target/${TARGET}/release/${PROJECT_NAME}${EXE}" "dist/${PROJECT_NAME}${EXE}"
-          
-          cd dist
+
           if [[ "$TARGET" == *"windows"* ]]; then
-            tar -a -c -f "../${PKG_NAME}.zip" *
+            cd dist
+            7z a "../${PKG_NAME}.zip" *
             echo "asset=${PKG_NAME}.zip" >> $GITHUB_OUTPUT
           else
+            cd dist
             tar -czf "../${PKG_NAME}.tar.gz" *
             echo "asset=${PKG_NAME}.tar.gz" >> $GITHUB_OUTPUT
           fi
@@ -87,6 +96,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           path: artifacts
+          merge-multiple: true
 
       - name: Release
         uses: softprops/action-gh-release@v1

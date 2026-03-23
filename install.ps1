@@ -45,19 +45,44 @@ $zipPath = Join-Path $tmpDir $filename
 
 Write-Info "Downloading $binaryName from $url..."
 try {
-    Invoke-WebRequest -Uri $url -OutFile $zipPath
+    Invoke-WebRequest -Uri $url -OutFile $zipPath -ErrorAction Stop
 } catch {
-    Write-Error "Download failed: $_"
+    Write-Error "Download failed: $_. Please ensure the version exists and you have internet access.`nURL: $url"
+}
+
+# Check if file exists and is not empty
+if ((Get-Item $zipPath).Length -lt 1000) {
+    $content = Get-Content $zipPath -Raw -TotalCount 500
+    if ($content -like "*<html*") {
+        Write-Error "Download failed: The URL returned an HTML page instead of a binary. This usually means the asset does not exist on GitHub yet.`nURL: $url"
+    } else {
+        Write-Error "Download failed: The file is suspiciously small ($( (Get-Item $zipPath).Length ) bytes). It may be corrupt."
+    }
 }
 
 Write-Info "Extracting..."
-Expand-Archive -Path $zipPath -DestinationPath $tmpDir -Force
+try {
+    Expand-Archive -Path $zipPath -DestinationPath $tmpDir -Force -ErrorAction Stop
+} catch {
+    Write-Error "Extraction failed: $_. This can happen if the downlad was interrupted or the zip format is unsupported."
+}
 
 if (-not (Test-Path $installDir)) {
     New-Item -ItemType Directory -Path $installDir -Force | Out-Null
 }
 
-Copy-Item -Path (Join-Path $tmpDir "builder.exe") -Destination (Join-Path $installDir "builder.exe") -Force
+$extractedExe = Join-Path $tmpDir "builder.exe"
+if (-not (Test-Path $extractedExe)) {
+    # Check if it was extracted into a subdirectory
+    $subDirExe = Get-ChildItem -Path $tmpDir -Filter "builder.exe" -Recurse | Select-Object -First 1
+    if ($subDirExe) {
+        $extractedExe = $subDirExe.FullName
+    } else {
+        Write-Error "Could not find builder.exe in the extracted archive."
+    }
+}
+
+Copy-Item -Path $extractedExe -Destination (Join-Path $installDir "builder.exe") -Force
 
 # Path manipulation
 $path = [Environment]::GetEnvironmentVariable("PATH", "User")
