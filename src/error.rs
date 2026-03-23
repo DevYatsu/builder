@@ -12,6 +12,8 @@ pub enum BuildError {
     Input(#[from] std::io::Error),
     #[error("Argument parsing failed: {0}")]
     Arguments(#[from] pico_args::Error),
+    #[error("Command failed: {0}")]
+    CommandFailed(String),
 }
 
 pub type Result<T> = std::result::Result<T, BuildError>;

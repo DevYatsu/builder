@@ -20,6 +20,8 @@ jobs:
           - { target: aarch64-unknown-linux-musl, os: ubuntu-latest, use-cross: true }
           - { target: x86_64-apple-darwin, os: macos-latest }
           - { target: aarch64-apple-darwin, os: macos-latest }
+          - { target: x86_64-pc-windows-msvc, os: windows-latest }
+          - { target: aarch64-pc-windows-msvc, os: windows-latest }
 
     steps:
       - uses: actions/checkout@v4
@@ -29,9 +31,9 @@ jobs:
         with:
           targets: ${{ matrix.job.target }}
 
-      - name: Install Cross
+      - name: Setup Cross
         if: matrix.job.use-cross
-        run: cargo install cross --git https://github.com/cross-rs/cross.git
+        uses: taiki-e/setup-cross-action@v1
 
       - name: Build
         run: |
@@ -47,6 +49,7 @@ jobs:
         run: |
           PROJECT_NAME="builder"
           TARGET="${{ matrix.job.target }}"
+          EXE=""
           
           if [[ "$TARGET" == *"windows"* ]]; then
             EXE=".exe"
@@ -58,7 +61,7 @@ jobs:
           
           cd dist
           if [[ "$TARGET" == *"windows"* ]]; then
-            zip "../${PKG_NAME}.zip" *
+            7z a "../${PKG_NAME}.zip" *
             echo "asset=${PKG_NAME}.zip" >> $GITHUB_OUTPUT
           else
             tar -czf "../${PKG_NAME}.tar.gz" *

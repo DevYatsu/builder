@@ -12,7 +12,7 @@ pub fn execute_interactive(sh: &Shell, cmd_name: &str, args: &[&str]) -> Result<
     if status.success() {
         Ok(())
     } else {
-        Err(BuildError::NoSystemFound) // Temporary error
+        Err(BuildError::CommandFailed(format!("{} {:?}", cmd_name, args)))
     }
 }
 
