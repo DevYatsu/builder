@@ -20,10 +20,8 @@ impl BuildSystem for MakeBuild {
         if options.test {
             cmd!(sh, "make test").run()?;
         }
-        if options.run {
-            if crate::utils::execute_interactive(sh, "make", &["run"]).is_err() {
-                execute_recently_modified_binary(sh, ".")?;
-            }
+        if options.run && crate::utils::execute_interactive(sh, "make", &["run"]).is_err() {
+            execute_recently_modified_binary(sh, ".")?;
         }
         Ok(())
     }
