@@ -1,6 +1,6 @@
-use crate::error::{BuildError, Result};
+use crate::error::Result;
 use crate::systems::{BuildOptions, BuildSystem};
-use xshell::{Shell, cmd};
+use xshell::Shell;
 
 #[derive(Debug, Clone, Copy)]
 pub struct RustBuild;
@@ -14,15 +14,12 @@ impl BuildSystem for RustBuild {
         "Rust"
     }
 
-    fn execute(&self, sh: &Shell, options: &BuildOptions) -> Result<()> {
+    fn execute(&self, _sh: &Shell, options: &BuildOptions) -> Result<()> {
         let verb = options.verb();
-        let rel = if options.release {
-            vec!["--release"]
-        } else {
-            vec![]
-        };
-        cmd!(sh, "cargo {verb} {rel...}")
-            .run()
-            .map_err(BuildError::from)
+        let mut args = vec![verb];
+        if options.release {
+            args.push("--release");
+        }
+        crate::utils::execute_interactive(_sh, "cargo", &args)
     }
 }

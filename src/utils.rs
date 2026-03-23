@@ -1,6 +1,20 @@
 use crate::error::{BuildError, Result};
 use std::path::{Path, PathBuf};
-use xshell::{Shell, cmd};
+use std::process::Command;
+use xshell::Shell;
+
+pub fn execute_interactive(sh: &Shell, cmd_name: &str, args: &[&str]) -> Result<()> {
+    let status = Command::new(cmd_name)
+        .args(args)
+        .current_dir(sh.current_dir())
+        .status()
+        .map_err(BuildError::from)?;
+    if status.success() {
+        Ok(())
+    } else {
+        Err(BuildError::NoSystemFound) // Temporary error
+    }
+}
 
 pub fn execute_recently_modified_binary(sh: &Shell, search_dir: &str) -> Result<()> {
     let mut most_recent = None;
@@ -44,7 +58,7 @@ pub fn execute_recently_modified_binary(sh: &Shell, search_dir: &str) -> Result<
     }
     if let Some(exe) = most_recent {
         log::info!("executing: {}", exe.display());
-        cmd!(sh, "{exe}").run().map_err(BuildError::from)
+        execute_interactive(sh, sh.current_dir().join(exe).to_str().unwrap(), &[])
     } else {
         log::warn!("no executable found");
         Ok(())

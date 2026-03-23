@@ -35,7 +35,7 @@ impl BuildSystem for PythonBuild {
             } else {
                 "."
             };
-            cmd!(sh, "{py} {entry}").run().map_err(BuildError::from)
+            crate::utils::execute_interactive(sh, py, &[entry])
         } else {
             cmd!(sh, "{py} -m pip install -r requirements.txt")
                 .run()
