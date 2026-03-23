@@ -33,7 +33,9 @@ jobs:
 
       - name: Setup Cross
         if: matrix.job.use-cross
-        uses: taiki-e/setup-cross-action@v1
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cross
 
       - name: Build
         run: |

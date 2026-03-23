@@ -1,6 +1,6 @@
 [package]
 name = "builder"
-version = "1.0.1"
+version = "1.0.0"
 edition = "2024"
 authors = ["Yanis Amani <107571716+DevYatsu@users.noreply.github.com>"]
 description = "A minimalist, universal build utility for automatic project building"
