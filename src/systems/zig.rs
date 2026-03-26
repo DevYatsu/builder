@@ -1,4 +1,4 @@
-use crate::error::{BuildError, Result};
+use crate::error::Result;
 use crate::systems::{BuildOptions, BuildSystem};
 use xshell::{Shell, cmd};
 
@@ -14,21 +14,23 @@ impl BuildSystem for ZigBuild {
         "Zig"
     }
 
+    fn description(&self) -> &'static str {
+        "Build and run Zig projects"
+    }
+
     fn execute(&self, sh: &Shell, options: &BuildOptions) -> Result<()> {
-        let run_flag = if options.test {
-            Some("test")
+        let mut args = vec![];
+        if options.test {
+            args.push("test");
         } else if options.run {
-            Some("run")
+            args.push("run");
         } else {
-            None
-        };
-        let opt = if options.release {
-            Some("-Doptimize=ReleaseFast")
-        } else {
-            None
-        };
-        cmd!(sh, "zig build {run_flag...} {opt...}")
-            .run()
-            .map_err(BuildError::from)
+            args.push("build");
+        }
+        if options.release {
+            args.extend(["-Doptimize", "ReleaseSafe"]);
+        }
+        cmd!(sh, "zig build {args...}").run()?;
+        Ok(())
     }
 }

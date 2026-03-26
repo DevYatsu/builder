@@ -1,4 +1,4 @@
-use crate::error::{BuildError, Result};
+use crate::error::Result;
 use crate::systems::{BuildOptions, BuildSystem};
 use xshell::{Shell, cmd};
 
@@ -14,20 +14,16 @@ impl BuildSystem for GradleBuild {
         "Gradle"
     }
 
+    fn description(&self) -> &'static str {
+        "Build and run projects using Gradle"
+    }
+
     fn execute(&self, sh: &Shell, options: &BuildOptions) -> Result<()> {
-        let exe = if sh.path_exists("gradlew") {
-            "./gradlew"
-        } else {
-            "gradle"
-        };
-        let mut args = vec![];
-        if options.test {
-            args.push("test");
-        } else if options.run {
-            args.push("run");
-        } else {
-            args.push("build");
+        let task = if options.test { "test" } else { "build" };
+        cmd!(sh, "./gradlew {task}").run()?;
+        if options.run {
+            cmd!(sh, "./gradlew run").run()?;
         }
-        cmd!(sh, "{exe} {args...}").run().map_err(BuildError::from)
+        Ok(())
     }
 }

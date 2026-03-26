@@ -1,4 +1,4 @@
-use crate::error::{BuildError, Result};
+use crate::error::Result;
 use crate::systems::{BuildOptions, BuildSystem};
 use xshell::{Shell, cmd};
 
@@ -14,15 +14,13 @@ impl BuildSystem for GoBuild {
         "Go"
     }
 
+    fn description(&self) -> &'static str {
+        "Build and run Go projects"
+    }
+
     fn execute(&self, sh: &Shell, options: &BuildOptions) -> Result<()> {
-        let mut args = vec![];
-        if options.test {
-            args.extend(["test", "./..."]);
-        } else if options.run {
-            args.extend(["run", "."]);
-        } else {
-            args.push("build");
-        }
-        cmd!(sh, "go {args...}").run().map_err(BuildError::from)
+        let verb = options.verb();
+        cmd!(sh, "go {verb} .").run()?;
+        Ok(())
     }
 }

@@ -1,6 +1,5 @@
 use crate::error::Result;
 use crate::systems::{BuildOptions, BuildSystem};
-use crate::utils::execute_recently_modified_binary;
 use xshell::{Shell, cmd};
 
 #[derive(Debug, Clone, Copy)]
@@ -15,37 +14,23 @@ impl BuildSystem for CMakeBuild {
         "CMake"
     }
 
+    fn description(&self) -> &'static str {
+        "Build and run C/C++ projects using CMake"
+    }
+
     fn execute(&self, sh: &Shell, options: &BuildOptions) -> Result<()> {
-        let build_dir = if sh.path_exists("build/CMakeCache.txt") {
-            "build"
-        } else if sh.path_exists("CMakeCache.txt") {
-            "."
-        } else {
-            let mut args = vec!["-B", "build", "-S", "."];
-            if cmd!(sh, "ninja --version").read().is_ok() {
-                args.extend(["-G", "Ninja"]);
-            }
-            if options.release {
-                args.push("-DCMAKE_BUILD_TYPE=Release");
-            }
-            cmd!(sh, "cmake {args...}").run()?;
-            "build"
-        };
+        let build_type = if options.release { "Release" } else { "Debug" };
 
-        let config = if options.release {
-            vec!["--config", "Release"]
-        } else {
-            vec![]
-        };
-
-        cmd!(sh, "cmake --build {build_dir} {config...}").run()?;
-
-        if options.test {
-            cmd!(sh, "ctest --test-dir {build_dir}").run()?;
+        let build_dir = "build";
+        if !sh.path_exists(build_dir) {
+            sh.create_dir(build_dir)?;
         }
 
+        cmd!(sh, "cmake -B {build_dir} -DCMAKE_BUILD_TYPE={build_type}").run()?;
+        cmd!(sh, "cmake --build {build_dir}").run()?;
+
         if options.run {
-            execute_recently_modified_binary(sh, build_dir)?;
+            crate::utils::execute_recently_modified_binary(sh, build_dir)?;
         }
 
         Ok(())

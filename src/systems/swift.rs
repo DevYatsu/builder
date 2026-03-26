@@ -1,4 +1,4 @@
-use crate::error::{BuildError, Result};
+use crate::error::Result;
 use crate::systems::{BuildOptions, BuildSystem};
 use xshell::{Shell, cmd};
 
@@ -14,21 +14,14 @@ impl BuildSystem for SwiftBuild {
         "Swift"
     }
 
+    fn description(&self) -> &'static str {
+        "Build and run Swift projects"
+    }
+
     fn execute(&self, sh: &Shell, options: &BuildOptions) -> Result<()> {
-        let verb = if options.test {
-            "test"
-        } else if options.run {
-            "run"
-        } else {
-            "build"
-        };
-        let config = if options.release {
-            vec!["-c", "release"]
-        } else {
-            vec![]
-        };
-        cmd!(sh, "swift {verb} {config...}")
-            .run()
-            .map_err(BuildError::from)
+        let verb = options.verb();
+        let config = if options.release { "release" } else { "debug" };
+        cmd!(sh, "swift {verb} -c {config}").run()?;
+        Ok(())
     }
 }

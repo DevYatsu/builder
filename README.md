@@ -1,11 +1,10 @@
-# builder
+# ybuild
 
 [![CI](https://github.com/DevYatsu/builder/actions/workflows/ci.yml/badge.svg)](https://github.com/DevYatsu/builder/actions/workflows/ci.yml)
 [![Crates.io](https://img.shields.io/crates/v/builder.svg)](https://crates.io/crates/builder)
 
-A minimalist, universal build utility written in Rust.
-
-builder automatically detects the build system in your current directory and provides a unified interface for building, running, and testing projects across multiple languages and frameworks.
+A minimalist, universal build utility for automatic project building. `ybuild` intelligently detects your project's build system and provides a unified interface for building, running, and testing.
+ projects across multiple languages and frameworks.
 
 ## Features
 

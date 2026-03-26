@@ -1,4 +1,4 @@
-use crate::error::{BuildError, Result};
+use crate::error::Result;
 use crate::systems::{BuildOptions, BuildSystem};
 use xshell::{Shell, cmd};
 
@@ -9,9 +9,9 @@ impl BuildSystem for DotnetBuild {
     fn detect(&self, sh: &Shell) -> bool {
         sh.read_dir(".")
             .map(|entries| {
-                entries.iter().any(|e| {
-                    e.extension()
-                        .is_some_and(|ext| ext == "sln" || ext == "csproj" || ext == "fsproj")
+                entries.iter().any(|p| {
+                    p.extension()
+                        .is_some_and(|ext| ext == "csproj" || ext == "fsproj" || ext == "sln")
                 })
             })
             .unwrap_or(false)
@@ -21,21 +21,14 @@ impl BuildSystem for DotnetBuild {
         ".NET"
     }
 
+    fn description(&self) -> &'static str {
+        "Build and run .NET projects"
+    }
+
     fn execute(&self, sh: &Shell, options: &BuildOptions) -> Result<()> {
-        let verb = if options.test {
-            "test"
-        } else if options.run {
-            "run"
-        } else {
-            "build"
-        };
-        let config = if options.release {
-            vec!["-c", "Release"]
-        } else {
-            vec![]
-        };
-        cmd!(sh, "dotnet {verb} {config...}")
-            .run()
-            .map_err(BuildError::from)
+        let verb = options.verb();
+        let config = if options.release { "Release" } else { "Debug" };
+        cmd!(sh, "dotnet {verb} -c {config}").run()?;
+        Ok(())
     }
 }

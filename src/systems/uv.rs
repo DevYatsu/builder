@@ -1,4 +1,4 @@
-use crate::error::{BuildError, Result};
+use crate::error::Result;
 use crate::systems::{BuildOptions, BuildSystem};
 use xshell::{Shell, cmd};
 
@@ -11,7 +11,11 @@ impl BuildSystem for UvBuild {
     }
 
     fn name(&self) -> &'static str {
-        "uv (Python)"
+        "uv"
+    }
+
+    fn description(&self) -> &'static str {
+        "Build and run Python projects using the uv package manager"
     }
 
     fn execute(&self, sh: &Shell, options: &BuildOptions) -> Result<()> {
@@ -28,6 +32,7 @@ impl BuildSystem for UvBuild {
         } else {
             args.push("sync");
         }
-        cmd!(sh, "uv {args...}").run().map_err(BuildError::from)
+        cmd!(sh, "uv {args...}").run()?;
+        Ok(())
     }
 }

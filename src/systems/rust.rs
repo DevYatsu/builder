@@ -14,6 +14,10 @@ impl BuildSystem for RustBuild {
         "Rust"
     }
 
+    fn description(&self) -> &'static str {
+        "Build and run Rust projects using Cargo"
+    }
+
     fn execute(&self, _sh: &Shell, options: &BuildOptions) -> Result<()> {
         let verb = options.verb();
         let mut args = vec![verb];

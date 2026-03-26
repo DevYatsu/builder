@@ -171,7 +171,7 @@ fn test_real_node_project() {
 
     if output.status.success() {
         let stdout = String::from_utf8_lossy(&output.stdout);
-        assert!(stdout.contains("using: Node.js"));
+        assert!(stdout.contains("using: JavaScript/TypeScript"));
         assert!(stdout.contains("Hello world!"));
     }
 }
@@ -247,7 +247,7 @@ fn test_real_bun_project() {
 
     if output.status.success() {
         let stdout = String::from_utf8_lossy(&output.stdout);
-        assert!(stdout.contains("using: Bun"));
+        assert!(stdout.contains("using: JavaScript/TypeScript"));
         assert!(stdout.contains("Hello world!"));
     }
 }
@@ -263,7 +263,7 @@ fn test_real_deno_project() {
 
     if output.status.success() {
         let stdout = String::from_utf8_lossy(&output.stdout);
-        assert!(stdout.contains("using: Deno"));
+        assert!(stdout.contains("using: JavaScript/TypeScript"));
         assert!(stdout.contains("Hello world!"));
     }
 }
@@ -278,7 +278,7 @@ fn test_pnpm_detection() {
 
     if output.status.success() {
         let stdout = String::from_utf8_lossy(&output.stdout);
-        assert!(stdout.contains("using: Node.js"));
+        assert!(stdout.contains("using: JavaScript/TypeScript"));
     }
 }
 
@@ -309,7 +309,7 @@ fn test_real_uv_project() {
 
     if output.status.success() {
         let stdout = String::from_utf8_lossy(&output.stdout);
-        assert!(stdout.contains("using: uv (Python)"));
+        assert!(stdout.contains("using: uv"));
         assert!(stdout.contains("Hello world!"));
     }
 }

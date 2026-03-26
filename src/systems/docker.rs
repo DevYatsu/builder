@@ -14,6 +14,10 @@ impl BuildSystem for DockerBuild {
         "Docker"
     }
 
+    fn description(&self) -> &'static str {
+        "Build and run projects using Docker"
+    }
+
     fn execute(&self, sh: &Shell, options: &BuildOptions) -> Result<()> {
         cmd!(sh, "docker build . -t app_image").run()?;
         if options.run {

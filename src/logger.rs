@@ -1,4 +1,5 @@
 use log::{Level, LevelFilter, Metadata, Record};
+use std::io::Write;
 
 #[derive(Debug, Clone, Copy)]
 struct Logger;
@@ -18,12 +19,16 @@ impl log::Log for Logger {
             };
 
             let reset = "\x1b[0m";
-
-            if record.level() <= Level::Warn {
-                eprintln!("{}[{}]{} {}", color_code, level_str, reset, record.args());
-            } else {
-                println!("{}[{}]{} {}", color_code, level_str, reset, record.args());
-            }
+            let mut stderr = std::io::stderr().lock();
+            let _ = writeln!(
+                stderr,
+                "{}[{}]{} {}",
+                color_code,
+                level_str,
+                reset,
+                record.args()
+            );
+            let _ = stderr.flush();
         }
     }
 

@@ -1,18 +1,15 @@
-use crate::error::Result;
 use xshell::Shell;
 
-mod bun;
 mod cmake;
-mod deno;
 mod docker;
 mod dotnet;
 mod flutter;
 mod go;
 mod gradle;
+mod javascript;
 mod just;
 mod make;
 mod maven;
-mod node;
 mod python;
 mod rust;
 mod swift;
@@ -38,10 +35,11 @@ impl BuildOptions {
     }
 }
 
-pub trait BuildSystem {
+pub trait BuildSystem: std::fmt::Debug {
     fn detect(&self, sh: &Shell) -> bool;
     fn name(&self) -> &'static str;
-    fn execute(&self, sh: &Shell, options: &BuildOptions) -> Result<()>;
+    fn description(&self) -> &'static str;
+    fn execute(&self, sh: &Shell, options: &BuildOptions) -> crate::error::Result<()>;
 }
 
 pub fn get_systems() -> Vec<Box<dyn BuildSystem>> {
@@ -50,9 +48,7 @@ pub fn get_systems() -> Vec<Box<dyn BuildSystem>> {
         Box::new(make::MakeBuild),
         Box::new(just::JustBuild),
         Box::new(cmake::CMakeBuild),
-        Box::new(node::NodeBuild),
-        Box::new(bun::BunBuild),
-        Box::new(deno::DenoBuild),
+        Box::new(javascript::JavaScriptBuild),
         Box::new(go::GoBuild),
         Box::new(uv::UvBuild),
         Box::new(python::PythonBuild),

@@ -1,4 +1,4 @@
-use crate::error::{BuildError, Result};
+use crate::error::Result;
 use crate::systems::{BuildOptions, BuildSystem};
 use xshell::{Shell, cmd};
 
@@ -14,15 +14,16 @@ impl BuildSystem for MavenBuild {
         "Maven"
     }
 
+    fn description(&self) -> &'static str {
+        "Build and run Java projects using Maven"
+    }
+
     fn execute(&self, sh: &Shell, options: &BuildOptions) -> Result<()> {
-        let mut args = vec![];
-        if options.test {
-            args.push("test");
-        } else if options.run {
-            args.push("spring-boot:run");
-        } else {
-            args.push("package");
+        let goal = if options.test { "test" } else { "install" };
+        cmd!(sh, "mvn {goal}").run()?;
+        if options.run {
+            cmd!(sh, "mvn exec:java").run()?;
         }
-        cmd!(sh, "mvn {args...}").run().map_err(BuildError::from)
+        Ok(())
     }
 }

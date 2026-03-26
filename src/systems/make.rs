@@ -15,6 +15,10 @@ impl BuildSystem for MakeBuild {
         "Makefile"
     }
 
+    fn description(&self) -> &'static str {
+        "Build and run projects using Makefile"
+    }
+
     fn execute(&self, sh: &Shell, options: &BuildOptions) -> Result<()> {
         cmd!(sh, "make").run()?;
         if options.test {

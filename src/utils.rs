@@ -1,4 +1,4 @@
-use crate::error::{BuildError, Result};
+use crate::error::{Result, YbuildError};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use xshell::Shell;
@@ -7,18 +7,41 @@ pub fn execute_interactive(sh: &Shell, cmd_name: &str, args: &[&str]) -> Result<
     let status = Command::new(cmd_name)
         .args(args)
         .current_dir(sh.current_dir())
-        .status()
-        .map_err(BuildError::from)?;
+        .status()?;
+
     if status.success() {
         Ok(())
     } else {
-        Err(BuildError::CommandFailed(format!("{} {:?}", cmd_name, args)))
+        Err(YbuildError::Other(format!(
+            "Command failed with exit code: {:?}",
+            status.code()
+        )))
+    }
+}
+
+pub fn select_command(prompt: &str, options: Vec<String>) -> Result<String> {
+    use dialoguer::{Select, theme::ColorfulTheme};
+    let selection = Select::with_theme(&ColorfulTheme::default())
+        .with_prompt(prompt)
+        .items(&options)
+        .default(0)
+        .interact_opt()
+        .map_err(|e| YbuildError::Other(e.to_string()))?;
+
+    selection
+        .map(|idx| options[idx].clone())
+        .ok_or(YbuildError::SelectionCanceled)
+}
+
+pub fn select_option(prompt: &str, options: Vec<String>) -> Result<Option<String>> {
+    match options.len() {
+        0 => Ok(None),
+        1 => Ok(Some(options[0].clone())),
+        _ => Ok(Some(select_command(prompt, options)?)),
     }
 }
 
 pub fn execute_recently_modified_binary(sh: &Shell, search_dir: &str) -> Result<()> {
-    let mut most_recent = None;
-    let mut max_time = std::time::UNIX_EPOCH;
     let skip_dirs = [
         ".git",
         "node_modules",
@@ -30,37 +53,51 @@ pub fn execute_recently_modified_binary(sh: &Shell, search_dir: &str) -> Result<
         "__pycache__",
         "obj",
     ];
-    let mut dirs = if search_dir != "." {
-        vec![PathBuf::from(search_dir)]
-    } else {
-        vec![PathBuf::from(".")]
-    };
+
+    let mut executables = Vec::new();
+    let mut dirs = vec![PathBuf::from(search_dir)];
+
     while let Some(dir) = dirs.pop() {
         if let Ok(entries) = sh.read_dir(&dir) {
             for path in entries {
-                let name = path.file_name().unwrap_or_default().to_string_lossy();
-                if name.starts_with('.') || skip_dirs.contains(&name.as_ref()) {
+                let name = path
+                    .file_name()
+                    .and_then(|n| n.to_str())
+                    .unwrap_or_default();
+                if name.starts_with('.') || skip_dirs.contains(&name) {
                     continue;
                 }
-                let full_path = sh.current_dir().join(&path);
-                if full_path.is_dir() {
+
+                if path.is_dir() {
                     dirs.push(path);
-                } else if is_executable(&full_path)
-                    && let Ok(meta) = std::fs::metadata(&full_path)
-                    && let Ok(modified) = meta.modified()
-                    && modified > max_time
-                {
-                    max_time = modified;
-                    most_recent = Some(path);
+                } else if is_executable(&path) {
+                    executables.push(path);
                 }
             }
         }
     }
-    if let Some(exe) = most_recent {
-        log::info!("executing: {}", exe.display());
-        execute_interactive(sh, sh.current_dir().join(exe).to_str().unwrap(), &[])
+
+    if executables.is_empty() {
+        log::warn!("No executables found in {}", search_dir);
+        return Ok(());
+    }
+
+    executables.sort_by_cached_key(|path| {
+        std::fs::metadata(path)
+            .and_then(|m| m.modified())
+            .unwrap_or(std::time::UNIX_EPOCH)
+    });
+    executables.reverse();
+
+    let options: Vec<String> = executables
+        .iter()
+        .filter_map(|p| p.to_str().map(|s| s.to_string()))
+        .collect();
+
+    if let Some(selected) = select_option("Select executable to run", options)? {
+        log::info!("executing: {}", selected);
+        execute_interactive(sh, &selected, &[])
     } else {
-        log::warn!("no executable found");
         Ok(())
     }
 }
@@ -69,16 +106,18 @@ pub fn is_executable(path: &Path) -> bool {
     #[cfg(unix)]
     {
         use std::os::unix::fs::PermissionsExt;
-        if let Ok(meta) = std::fs::metadata(path) {
-            return meta.is_file() && meta.permissions().mode() & 0o111 != 0;
-        }
+        std::fs::metadata(path)
+            .map(|m| m.is_file() && m.permissions().mode() & 0o111 != 0)
+            .unwrap_or(false)
     }
     #[cfg(windows)]
     {
-        if let Some(ext) = path.extension() {
-            let ext_str = ext.to_string_lossy().to_lowercase();
-            return ext_str == "exe" || ext_str == "bat" || ext_str == "cmd";
-        }
+        path.extension()
+            .and_then(|ext| ext.to_str())
+            .map(|ext| {
+                let ext = ext.to_lowercase();
+                ext == "exe" || ext == "bat" || ext == "cmd"
+            })
+            .unwrap_or(false)
     }
-    false
 }

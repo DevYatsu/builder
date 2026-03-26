@@ -1,4 +1,4 @@
-use crate::error::{BuildError, Result};
+use crate::error::Result;
 use crate::systems::{BuildOptions, BuildSystem};
 use xshell::{Shell, cmd};
 
@@ -7,28 +7,32 @@ pub struct FlutterBuild;
 
 impl BuildSystem for FlutterBuild {
     fn detect(&self, sh: &Shell) -> bool {
-        sh.path_exists("pubspec.yaml") && sh.path_exists("lib")
+        sh.path_exists("pubspec.yaml")
+            && sh
+                .read_file("pubspec.yaml")
+                .map(|c| c.contains("flutter:"))
+                .unwrap_or(false)
     }
 
     fn name(&self) -> &'static str {
         "Flutter"
     }
 
+    fn description(&self) -> &'static str {
+        "Build and run Flutter apps"
+    }
+
     fn execute(&self, sh: &Shell, options: &BuildOptions) -> Result<()> {
-        let verb = if options.test {
-            "test"
-        } else if options.run {
-            "run"
-        } else {
-            "build"
+        let verb = match options.verb() {
+            "test" => "test",
+            "run" => "run",
+            _ => "build",
         };
-        let rel = if options.release && verb != "test" {
-            vec!["--release"]
-        } else {
-            vec![]
-        };
-        cmd!(sh, "flutter {verb} {rel...}")
-            .run()
-            .map_err(BuildError::from)
+        let mut args = vec![verb];
+        if options.release && verb != "test" {
+            args.push("--release");
+        }
+        cmd!(sh, "flutter {args...}").run()?;
+        Ok(())
     }
 }

@@ -1,4 +1,4 @@
-use crate::error::{BuildError, Result};
+use crate::error::Result;
 use crate::systems::{BuildOptions, BuildSystem};
 use xshell::{Shell, cmd};
 
@@ -14,8 +14,13 @@ impl BuildSystem for JustBuild {
         "Just"
     }
 
+    fn description(&self) -> &'static str {
+        "Build and run projects using the just command runner"
+    }
+
     fn execute(&self, sh: &Shell, options: &BuildOptions) -> Result<()> {
         let recipe = options.verb();
-        cmd!(sh, "just {recipe}").run().map_err(BuildError::from)
+        cmd!(sh, "just {recipe}").run()?;
+        Ok(())
     }
 }
