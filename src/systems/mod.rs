@@ -1,6 +1,7 @@
 use xshell::Shell;
 
 mod cmake;
+pub mod custom;
 mod docker;
 mod dotnet;
 mod flutter;
@@ -21,6 +22,8 @@ pub struct BuildOptions {
     pub run: bool,
     pub release: bool,
     pub test: bool,
+    pub select_system: bool,
+    pub select_command: bool,
 }
 
 impl BuildOptions {
@@ -39,7 +42,7 @@ pub trait BuildSystem: std::fmt::Debug {
     fn detect(&self, sh: &Shell) -> bool;
     fn name(&self) -> &'static str;
     fn description(&self) -> &'static str;
-    fn execute(&self, sh: &Shell, options: &BuildOptions) -> crate::error::Result<()>;
+    fn execute(&self, sh: &Shell, options: &BuildOptions) -> crate::error::Result<Option<String>>;
 }
 
 pub fn get_systems() -> Vec<Box<dyn BuildSystem>> {

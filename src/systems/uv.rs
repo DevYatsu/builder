@@ -18,7 +18,7 @@ impl BuildSystem for UvBuild {
         "Build and run Python projects using the uv package manager"
     }
 
-    fn execute(&self, sh: &Shell, options: &BuildOptions) -> Result<()> {
+    fn execute(&self, sh: &Shell, options: &BuildOptions) -> Result<Option<String>> {
         let mut args = vec![];
         if options.test {
             args.extend(["run", "pytest"]);
@@ -33,6 +33,6 @@ impl BuildSystem for UvBuild {
             args.push("sync");
         }
         cmd!(sh, "uv {args...}").run()?;
-        Ok(())
+        Ok(None)
     }
 }

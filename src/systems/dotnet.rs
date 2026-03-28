@@ -25,10 +25,10 @@ impl BuildSystem for DotnetBuild {
         "Build and run .NET projects"
     }
 
-    fn execute(&self, sh: &Shell, options: &BuildOptions) -> Result<()> {
+    fn execute(&self, sh: &Shell, options: &BuildOptions) -> Result<Option<String>> {
         let verb = options.verb();
         let config = if options.release { "Release" } else { "Debug" };
         cmd!(sh, "dotnet {verb} -c {config}").run()?;
-        Ok(())
+        Ok(None)
     }
 }

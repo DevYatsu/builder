@@ -18,9 +18,22 @@ impl BuildSystem for JustBuild {
         "Build and run projects using the just command runner"
     }
 
-    fn execute(&self, sh: &Shell, options: &BuildOptions) -> Result<()> {
+    fn execute(&self, sh: &Shell, options: &BuildOptions) -> Result<Option<String>> {
+        if options.select_command {
+            let output = cmd!(sh, "just --summary").read().unwrap_or_default();
+            let recipes: Vec<String> = output.split_whitespace().map(|s| s.to_string()).collect();
+
+            if !recipes.is_empty() {
+                if let Some(selected) = crate::utils::select_option("Select just recipe", recipes)?
+                {
+                    cmd!(sh, "just {selected}").run()?;
+                    return Ok(Some(format!("just {selected}")));
+                }
+            }
+        }
+
         let recipe = options.verb();
         cmd!(sh, "just {recipe}").run()?;
-        Ok(())
+        Ok(None)
     }
 }

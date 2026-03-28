@@ -18,12 +18,12 @@ impl BuildSystem for GradleBuild {
         "Build and run projects using Gradle"
     }
 
-    fn execute(&self, sh: &Shell, options: &BuildOptions) -> Result<()> {
+    fn execute(&self, sh: &Shell, options: &BuildOptions) -> Result<Option<String>> {
         let task = if options.test { "test" } else { "build" };
         cmd!(sh, "./gradlew {task}").run()?;
         if options.run {
             cmd!(sh, "./gradlew run").run()?;
         }
-        Ok(())
+        Ok(None)
     }
 }

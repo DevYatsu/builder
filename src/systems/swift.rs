@@ -18,10 +18,10 @@ impl BuildSystem for SwiftBuild {
         "Build and run Swift projects"
     }
 
-    fn execute(&self, sh: &Shell, options: &BuildOptions) -> Result<()> {
+    fn execute(&self, sh: &Shell, options: &BuildOptions) -> Result<Option<String>> {
         let verb = options.verb();
         let config = if options.release { "release" } else { "debug" };
         cmd!(sh, "swift {verb} -c {config}").run()?;
-        Ok(())
+        Ok(None)
     }
 }

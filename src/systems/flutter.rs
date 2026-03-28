@@ -22,7 +22,7 @@ impl BuildSystem for FlutterBuild {
         "Build and run Flutter apps"
     }
 
-    fn execute(&self, sh: &Shell, options: &BuildOptions) -> Result<()> {
+    fn execute(&self, sh: &Shell, options: &BuildOptions) -> Result<Option<String>> {
         let verb = match options.verb() {
             "test" => "test",
             "run" => "run",
@@ -33,6 +33,6 @@ impl BuildSystem for FlutterBuild {
             args.push("--release");
         }
         cmd!(sh, "flutter {args...}").run()?;
-        Ok(())
+        Ok(None)
     }
 }

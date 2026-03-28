@@ -27,35 +27,41 @@ impl BuildSystem for JavaScriptBuild {
         "Build and run projects using Node.js, Bun, or Deno"
     }
 
-    fn execute(&self, sh: &Shell, options: &BuildOptions) -> Result<()> {
+    fn execute(&self, sh: &Shell, options: &BuildOptions) -> Result<Option<String>> {
         let pm = self.detect_package_manager(sh)?;
 
         if options.test {
-            return cmd!(sh, "{pm} test").run().map_err(|e| e.into());
+            cmd!(sh, "{pm} test").run()?;
+            return Ok(None);
         }
 
-        if options.run {
+        if options.run || options.select_command {
             let script_names = self.get_json_commands(sh, "package.json", "scripts");
 
             if let Some(selected) =
                 crate::utils::select_option("Select script to run", script_names)?
             {
-                return cmd!(sh, "{pm} run {selected}").run().map_err(|e| e.into());
+                let cmd_str = format!("{pm} run {selected}");
+                cmd!(sh, "{pm} run {selected}").run()?;
+                return Ok(Some(cmd_str));
             }
 
             // Fallbacks for projects without explicit scripts
             if pm == "bun" {
-                return cmd!(sh, "bun run .").run().map_err(|e| e.into());
+                cmd!(sh, "bun run .").run()?;
+                return Ok(None);
             }
 
             for entry in ["index.js", "main.ts", "index.ts", "server.js"] {
                 if sh.path_exists(entry) {
-                    return cmd!(sh, "node {entry}").run().map_err(|e| e.into());
+                    cmd!(sh, "node {entry}").run()?;
+                    return Ok(None);
                 }
             }
         }
 
-        Ok(())
+        cmd!(sh, "{pm} run build").run()?;
+        Ok(None)
     }
 }
 

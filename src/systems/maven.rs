@@ -18,12 +18,12 @@ impl BuildSystem for MavenBuild {
         "Build and run Java projects using Maven"
     }
 
-    fn execute(&self, sh: &Shell, options: &BuildOptions) -> Result<()> {
+    fn execute(&self, sh: &Shell, options: &BuildOptions) -> Result<Option<String>> {
         let goal = if options.test { "test" } else { "install" };
         cmd!(sh, "mvn {goal}").run()?;
         if options.run {
             cmd!(sh, "mvn exec:java").run()?;
         }
-        Ok(())
+        Ok(None)
     }
 }

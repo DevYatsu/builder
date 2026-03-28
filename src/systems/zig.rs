@@ -18,7 +18,7 @@ impl BuildSystem for ZigBuild {
         "Build and run Zig projects"
     }
 
-    fn execute(&self, sh: &Shell, options: &BuildOptions) -> Result<()> {
+    fn execute(&self, sh: &Shell, options: &BuildOptions) -> Result<Option<String>> {
         let mut args = vec![];
         if options.test {
             args.push("test");
@@ -31,6 +31,6 @@ impl BuildSystem for ZigBuild {
             args.extend(["-Doptimize", "ReleaseSafe"]);
         }
         cmd!(sh, "zig build {args...}").run()?;
-        Ok(())
+        Ok(None)
     }
 }

@@ -18,12 +18,13 @@ impl BuildSystem for RustBuild {
         "Build and run Rust projects using Cargo"
     }
 
-    fn execute(&self, _sh: &Shell, options: &BuildOptions) -> Result<()> {
+    fn execute(&self, _sh: &Shell, options: &BuildOptions) -> Result<Option<String>> {
         let verb = options.verb();
         let mut args = vec![verb];
         if options.release {
             args.push("--release");
         }
-        crate::utils::execute_interactive(_sh, "cargo", &args)
+        crate::utils::execute_interactive(_sh, "cargo", &args)?;
+        Ok(None)
     }
 }

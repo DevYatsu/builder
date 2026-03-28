@@ -22,7 +22,7 @@ impl BuildSystem for PythonBuild {
         "Run Python scripts and projects"
     }
 
-    fn execute(&self, sh: &Shell, options: &BuildOptions) -> Result<()> {
+    fn execute(&self, sh: &Shell, options: &BuildOptions) -> Result<Option<String>> {
         let py = if sh.path_exists(".venv") {
             if cfg!(windows) {
                 ".venv\\Scripts\\python.exe"
@@ -41,14 +41,35 @@ impl BuildSystem for PythonBuild {
             cmd!(sh, "{py} -m pip install -r requirements.txt").run()?;
         }
 
-        if options.run {
-            let entry = ["main.py", "app.py"]
+        if options.run || options.select_command {
+            let mut entry = ["main.py", "app.py"]
                 .into_iter()
                 .find(|f| sh.path_exists(f))
-                .unwrap_or(".");
-            crate::utils::execute_interactive(sh, py, &[entry])?;
+                .unwrap_or("main.py")
+                .to_string();
+
+            if options.select_command {
+                let py_files: Vec<String> = sh
+                    .read_dir(".")?
+                    .into_iter()
+                    .filter(|p| p.extension().map_or(false, |ext| ext == "py"))
+                    .map(|p| p.file_name().unwrap().to_string_lossy().to_string())
+                    .collect();
+
+                if !py_files.is_empty() {
+                    if let Some(selected) =
+                        crate::utils::select_option("Select python script to run", py_files)?
+                    {
+                        entry = selected;
+                    }
+                }
+            }
+
+            let full_cmd = format!("{py} {entry}");
+            crate::utils::execute_interactive(sh, py, &[&entry])?;
+            return Ok(Some(full_cmd));
         }
 
-        Ok(())
+        Ok(None)
     }
 }

@@ -18,9 +18,9 @@ impl BuildSystem for GoBuild {
         "Build and run Go projects"
     }
 
-    fn execute(&self, sh: &Shell, options: &BuildOptions) -> Result<()> {
+    fn execute(&self, sh: &Shell, options: &BuildOptions) -> Result<Option<String>> {
         let verb = options.verb();
         cmd!(sh, "go {verb} .").run()?;
-        Ok(())
+        Ok(None)
     }
 }

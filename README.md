@@ -1,108 +1,47 @@
-# ybuild
+# ybuild 🛠️
 
-[![CI](https://github.com/DevYatsu/builder/actions/workflows/ci.yml/badge.svg)](https://github.com/DevYatsu/builder/actions/workflows/ci.yml)
-[![Crates.io](https://img.shields.io/crates/v/builder.svg)](https://crates.io/crates/builder)
+A zero-config, pragmatic build utility for lazy developers. It detects your project type and runs the right command, then remembers it for next time.
 
-A minimalist, universal build utility for automatic project building. `ybuild` intelligently detects your project's build system and provides a unified interface for building, running, and testing.
- projects across multiple languages and frameworks.
-
-## Features
-
-- Automatic environment detection.
-- Minimalist console output with bracketed logging.
-- Support for build, run, and test modes.
-- Ninja generator support for CMake projects.
-- Automatic binary execution for systems without a native run command.
-- Zero configuration required.
-
-## Supported Systems
-
-- Rust (Cargo)
-- Makefile
-- CMake (with Ninja support)
-- Node.js (npm)
-- Go
-- Docker
-- Maven
-- Gradle
-- Zig
-- .NET (C#, F#)
-
-## Installation
-
-### Via Script (macOS and Linux)
-The fastest way to install the latest version:
+## 🚀 Quick Start
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/DevYatsu/builder/master/install.sh | bash
+# Just run it in any project folder
+ybuild
+
+# Run and execute (implied by first run in many systems)
+ybuild -x
+
+# Run tests
+ybuild -t
+
+# Watch for changes and rerun
+ybuild -w
 ```
 
-### Via Script (Windows)
-Open a PowerShell terminal and run:
+## ✨ Features
 
-```powershell
-powershell -c "iwr -useb https://raw.githubusercontent.com/DevYatsu/builder/master/install.ps1 | iex"
-```
+- **Auto-Detection**: Supports 15+ systems including Rust, JavaScript (NPM/Bun/Yarn/PNPM), Python, CMake, Makefile, Just, Go, Docker, Swift, etc.
+- **Smart Persistence**: `ybuild` stores your last successful command per directory in `~/.config/ybuild/config.json`. Next time you run `ybuild` in that same folder, it skips detection and runs your previous choice immediately.
+- **Granular Selection**:
+  - `-s, --system`: If multiple build systems are detected (e.g., both a `Makefile` and `Cargo.toml`), use this to force a re-selection of the underlying system.
+  - `-S, --select`: Use this to pick a specific subcommand or target:
+    - **NPM/Bun**: Pick a script from `package.json`.
+    - **Makefile**: Pick a target (extracted automatically).
+    - **CMake**: Pick a build target.
+    - **Just**: Pick a recipe.
+    - **Python**: Pick a specific script file.
+- **Custom Commands**: Use `-c "any shell command"` to override everything. This command will also be remembered for that folder.
+- **Watch Mode**: `-w` watches your project files (respecting `.gitignore`) and reruns the last command on every change.
 
-### From Source
+## 📁 Positional Directory Argument
+
+You can run `ybuild` on a specific directory without changing into it:
 ```bash
-git clone https://github.com/DevYatsu/builder.git
-cd builder
+ybuild ./my-project -x
+```
+
+## ⚙️ Installation
+
+```bash
 cargo install --path .
 ```
-
-## Uninstallation
-
-### macOS and Linux
-```bash
-curl -fsSL https://raw.githubusercontent.com/DevYatsu/builder/master/uninstall.sh | bash
-```
-
-### Windows
-```powershell
-powershell -c "iwr -useb https://raw.githubusercontent.com/DevYatsu/builder/master/uninstall.ps1 | iex"
-```
-
-## Usage
-
-```bash
-builder [OPTIONS] [DIRECTORY]
-```
-
-### Options
-
-- -x, --run      : Build and execute the project (uses native run or binary detection).
-- -t, --test     : Run project tests.
-- -r, --release  : Build with release optimizations.
-- -l, --list     : List all supported build systems.
-- -d, --dir <D>  : Run builder inside the specified directory.
-- -h, --help     : Show help information.
-
-### Examples
-
-Build the project in the current directory:
-```bash
-builder
-```
-
-Build and run a C++ CMake project in release mode:
-```bash
-builder -x -r
-```
-
-Run tests in a specific directory:
-```bash
-builder -t -d ./my-subproject
-```
-
-## Internal Testing
-
-To run the integration tests for the builder tool itself:
-
-```bash
-cargo test
-```
-
-## License
-
-MIT

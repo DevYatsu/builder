@@ -18,11 +18,11 @@ impl BuildSystem for DockerBuild {
         "Build and run projects using Docker"
     }
 
-    fn execute(&self, sh: &Shell, options: &BuildOptions) -> Result<()> {
+    fn execute(&self, sh: &Shell, options: &BuildOptions) -> Result<Option<String>> {
         cmd!(sh, "docker build . -t app_image").run()?;
         if options.run {
             cmd!(sh, "docker run -it --rm app_image").run()?;
         }
-        Ok(())
+        Ok(None)
     }
 }
